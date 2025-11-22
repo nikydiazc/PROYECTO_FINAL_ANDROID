@@ -24,11 +24,16 @@ import com.google.firebase.storage.FirebaseStorage
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.firebase.auth.FirebaseAuth
+
 
 class CrearTareaActivity : AppCompatActivity() {
 
     // Firestore
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private lateinit var bottomNav : BottomNavigationView
 
     private lateinit var btnImgAgregarFotografias: ImageButton
     private lateinit var btnIngresar: Button
@@ -74,7 +79,7 @@ class CrearTareaActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Asegúrate que el layout existe con este nombre
+
         setContentView(R.layout.activity_crear_tarea)
 
         btnImgAgregarFotografias = findViewById(R.id.btnImgAgregarFotografias)
@@ -83,6 +88,10 @@ class CrearTareaActivity : AppCompatActivity() {
         autoPiso = findViewById(R.id.autoCompleteUbicacion2)
         edtDescripcion = findViewById(R.id.txtDescripción)
         progressBarCarga = findViewById(R.id.progressBarCarga)
+        bottomNav = findViewById(R.id.bottomNav)
+
+        //Esto asegura que NO se tiñan los iconos, ya que daba error
+        bottomNav.itemIconTintList = null
 
         btnImgAgregarFotografias.setOnClickListener {
             showPhotoPickerDialog()
@@ -91,7 +100,32 @@ class CrearTareaActivity : AppCompatActivity() {
         btnIngresar.setOnClickListener {
             submitTarea()
         }
-    }
+
+        bottomNav.selectedItemId = R.id.nav_crear_tarea
+
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_crear_tarea -> {
+                    // Ya estás aquí, no es necesario hacer nada
+                    true
+                }
+
+                R.id.nav_muro_tareas -> {
+                    startActivity(Intent(this, MurosTareasActivity::class.java))
+                    true
+                }
+
+                R.id.nav_usuario -> {
+                    FirebaseAuth.getInstance().signOut()
+                    val intent = Intent(this, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    true
+                }
+
+                else -> false
+            }
+        }
 
     private fun showPhotoPickerDialog() {
         val options = arrayOf("Galería", "Cámara")

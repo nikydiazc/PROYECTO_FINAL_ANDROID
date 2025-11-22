@@ -7,13 +7,77 @@
     android:padding="16dp"
     android:background="@drawable/degradado_azul">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvTareas"
+    <!-- Botón Tareas Pendientes -->
+    <Button
+        android:id="@+id/btnTareasPendientes"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:paddingTop="50dp"
+        android:layout_height="wrap_content"
+        android:text="Tareas pendientes"
+        android:textStyle="bold"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="30dp"
+        android:backgroundTint="@color/rojo"
+        android:textSize="14sp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toStartOf="@+id/btnTareasRealizadas"
+        app:layout_constraintHorizontal_weight="1"
+        />
+
+    <!-- Botón Tareas Realizadas -->
+    <Button
+        android:id="@+id/btnTareasRealizadas"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Tareas realizadas"
+        android:textStyle="bold"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="30dp"
+        android:backgroundTint="@color/verde"
+        android:textSize="14sp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/btnTareasPendientes"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_weight="1"
+        />
+
+    <!-- Buscador por descripción -->
+    <EditText
+        android:id="@+id/etBuscarDescripcionOUbicacion"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:hint="Buscar por descripción o ubicación"
+        android:background="@drawable/cornertxtview"
+        android:padding="8dp"
+        android:textColor="@android:color/black"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@id/btnTareasPendientes"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        />
+
+    <TextView
+        android:id="@+id/tvFiltroPiso"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="552dp"
+        android:text="Filtrar por piso:"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Spinner
+        android:id="@+id/spFiltroPiso"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        app:layout_constraintBottom_toBottomOf="@id/tvFiltroPiso"
+        app:layout_constraintStart_toEndOf="@id/tvFiltroPiso"
+        app:layout_constraintEnd_toEndOf="parent"
+        />
+
+    <!-- RecyclerView de tareas -->
 </androidx.constraintlayout.widget.ConstraintLayout>

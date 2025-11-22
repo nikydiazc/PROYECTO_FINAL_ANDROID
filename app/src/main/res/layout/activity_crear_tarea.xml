@@ -2,28 +2,37 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
     android:background="@drawable/degradado_azul"
     android:id="@+id/activity_login"
     >
 
-    <!--Descripción de la tarea-->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/contenedorFormulario"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="15dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav">
+
+        <!--Descripción de la tarea-->
     <TextView
-        android:id="@+id/textView2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="104dp"
+        android:layout_marginBottom="56dp"
         android:gravity="center"
         android:text="Ingresa tu solicitud de limpieza"
         android:textColor="@color/white"
         android:textSize="16sp"
-        app:layout_constraintBottom_toBottomOf="@+id/txtDescripción"
+        app:layout_constraintBottom_toTopOf="@+id/txtDescripción"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.934" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -66,19 +75,7 @@
         app:layout_constraintStart_toStartOf="parent" />
 
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="7dp"
-        android:text="Piso"
-        android:textColor="@color/white"
-        app:layout_constraintBottom_toTopOf="@+id/autoCompleteUbicacion2"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.031"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <AutoCompleteTextView
+        <AutoCompleteTextView
         android:id="@+id/autoCompleteUbicacion"
         android:layout_width="0dp"
         android:layout_height="50dp"
@@ -95,39 +92,47 @@
         app:layout_constraintTop_toTopOf="@+id/txtDescripción" />
 
 
-    <AutoCompleteTextView
-        android:id="@+id/autoCompleteUbicacion2"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:layout_marginTop="180dp"
-        android:background="@drawable/cornertxtview"
-        android:gravity="center"
-        android:hint="Ingrese el piso "
-        android:inputType="text"
-        android:textColor="@color/gris"
-        android:textSize="14sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/txtDescripción" />
+        <!-- Piso con lista desplegable -->
 
-    <Button
-        android:id="@+id/btnIngresar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="17dp"
-        android:layout_marginBottom="136dp"
-        android:backgroundTint="@color/verde"
-        android:ems="10"
-        android:text="Ingresar solicitud"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnImgAgregarFotografias"
-        app:layout_constraintVertical_bias="0.0" />
+        <TextView
+            android:id="@+id/tvPiso"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Piso"
+            android:textColor="@color/white"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.031"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/autoCompleteUbicacion" />
+
+        <Spinner
+            android:id="@+id/spPiso"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/cornertxtview"
+            android:gravity="center"
+            app:layout_constraintTop_toBottomOf="@id/tvPiso"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <Button
+            android:id="@+id/btnIngresar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="17dp"
+            android:backgroundTint="@color/verde"
+            android:ems="10"
+            android:text="Ingresar solicitud"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnImgAgregarFotografias"
+            app:layout_constraintVertical_bias="0.0" />
 
     <ImageButton
         android:id="@+id/btnImgAgregarFotografias"
@@ -141,7 +146,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/autoCompleteUbicacion2" />
+        app:layout_constraintTop_toBottomOf="@+id/spPiso" />
 
     <ProgressBar
         android:id="@+id/progressBarCarga"
@@ -156,6 +161,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.9" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNav"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:background="@color/white"
+        app:menu="@menu/bottom_nav_menu"
+        app:itemIconTint="@null"
+    app:itemTextColor="@color/nav_item_color"
+    app:labelVisibilityMode="labeled"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintEnd_toEndOf="parent" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
