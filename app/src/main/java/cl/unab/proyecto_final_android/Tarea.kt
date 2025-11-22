@@ -1,10 +1,13 @@
 package cl.unab.proyecto_final_android
 
+import com.google.firebase.Timestamp
+
 data class Tarea(
-    val descripcion: String,
-    val ubicacion: String,
-    val piso: String,
-    val fechaCreacion: String,
-    val estado: String,
-    val imagenResId: Int? = null  // o URL si usas imágenes desde la web
+    val id: String = "",
+    val descripcion: String = "",
+    val ubicacion: String = "",
+    val piso: String = "",
+    val imagenUrl: String = "",
+    val estado: String = "",
+    val fechaCreacion: Timestamp? = null
 )
