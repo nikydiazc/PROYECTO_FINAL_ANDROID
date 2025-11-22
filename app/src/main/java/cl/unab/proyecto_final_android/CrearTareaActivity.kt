@@ -27,13 +27,12 @@ class CrearTareaActivity : AppCompatActivity() {
     // Firestore
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
-    private lateinit var progressBarCarga: ProgressBar
-
     private lateinit var btnImgAgregarFotografias: ImageButton
     private lateinit var btnIngresar: Button
     private lateinit var autoUbicacion: AutoCompleteTextView
     private lateinit var autoPiso: AutoCompleteTextView
     private lateinit var edtDescripcion: EditText
+    private lateinit var progressBarCarga: ProgressBar
 
     private var imageUri: Uri? = null
 
@@ -60,7 +59,7 @@ class CrearTareaActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // OJO: si tu layout se llama activity_crear_tareas.xml, cambia esto
+        // ⚠️ Asegúrate que este layout sea el correcto
         setContentView(R.layout.activity_crear_tarea)
 
         btnImgAgregarFotografias = findViewById(R.id.btnImgAgregarFotografias)
@@ -68,6 +67,7 @@ class CrearTareaActivity : AppCompatActivity() {
         autoUbicacion = findViewById(R.id.autoCompleteUbicacion)
         autoPiso = findViewById(R.id.autoCompleteUbicacion2)
         edtDescripcion = findViewById(R.id.txtDescripción)
+        progressBarCarga = findViewById(R.id.progressBarCarga) // 👈 IMPORTANTE
 
         btnImgAgregarFotografias.setOnClickListener {
             showPhotoPickerDialog()
@@ -89,6 +89,18 @@ class CrearTareaActivity : AppCompatActivity() {
                 }
             }
             .show()
+    }
+
+    private fun setLoading(isLoading: Boolean) {
+        if (isLoading) {
+            progressBarCarga.visibility = View.VISIBLE
+            btnIngresar.isEnabled = false
+            btnImgAgregarFotografias.isEnabled = false
+        } else {
+            progressBarCarga.visibility = View.GONE
+            btnIngresar.isEnabled = true
+            btnImgAgregarFotografias.isEnabled = true
+        }
     }
 
     private fun submitTarea() {
@@ -120,7 +132,7 @@ class CrearTareaActivity : AppCompatActivity() {
                         guardarTareaEnFirestore(descripcion, ubicacion, piso, imagenUrl)
                     }
                     .addOnFailureListener { e ->
-                        setLoading(false) // 🔹 Ocultar si falla aquí
+                        setLoading(false)
                         Toast.makeText(
                             this,
                             "Error al obtener URL de imagen: ${e.message}",
@@ -129,7 +141,7 @@ class CrearTareaActivity : AppCompatActivity() {
                     }
             }
             .addOnFailureListener { e ->
-                setLoading(false) // 🔹 Ocultar si falla aquí también
+                setLoading(false)
                 Toast.makeText(
                     this,
                     "Error al subir imagen: ${e.message}",
@@ -156,14 +168,14 @@ class CrearTareaActivity : AppCompatActivity() {
         db.collection("tareas")
             .add(tareaData)
             .addOnSuccessListener {
-                setLoading(false) // 🔹 ya terminó todo
+                setLoading(false)
                 Toast.makeText(this, "Tarea creada exitosamente", Toast.LENGTH_SHORT).show()
                 val intent = Intent(this, MurosTareasActivity::class.java)
                 startActivity(intent)
                 finish()
             }
             .addOnFailureListener { e ->
-                setLoading(false) // 🔹 se detiene aunque haya error
+                setLoading(false)
                 Toast.makeText(
                     this,
                     "Error al guardar tarea: ${e.message}",
@@ -186,17 +198,4 @@ class CrearTareaActivity : AppCompatActivity() {
             cacheFile
         )
     }
-
-    private fun setLoading(isLoading: Boolean) {
-        if (isLoading) {
-            progressBarCarga.visibility = View.VISIBLE
-            btnIngresar.isEnabled = false
-            btnImgAgregarFotografias.isEnabled = false
-        } else {
-            progressBarCarga.visibility = View.GONE
-            btnIngresar.isEnabled = true
-            btnImgAgregarFotografias.isEnabled = true
-        }
-    }
-
 }
