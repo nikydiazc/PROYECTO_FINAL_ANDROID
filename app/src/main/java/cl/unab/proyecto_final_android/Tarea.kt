@@ -9,5 +9,7 @@ data class Tarea(
     val piso: String = "",
     val imagenUrl: String = "",
     val estado: String = "",
-    val fechaCreacion: Timestamp? = null
+    val fechaCreacion: Timestamp? = null,
+    val respuestaUrl: String = "",
+    val fechaRespuesta: Timestamp? = null
 )

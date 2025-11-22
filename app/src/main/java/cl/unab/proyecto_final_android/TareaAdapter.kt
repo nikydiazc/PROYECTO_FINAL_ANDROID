@@ -12,15 +12,17 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class TareaAdapter(
-    private val tareas: List<Tarea>
+    private val tareas: List<Tarea>,
+    private val onResponderClick: (Tarea) -> Unit
 ) : RecyclerView.Adapter<TareaAdapter.TareaViewHolder>() {
 
     class TareaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val imgTarea: ImageView = itemView.findViewById(R.id.imgTarea)
+        val imgTarea: ImageView = itemView.findViewById(R.id.imgTarea)            // foto antes
+        val imgRespuesta: ImageView = itemView.findViewById(R.id.imgRespuesta)    // foto después
         val tvDescripcion: TextView = itemView.findViewById(R.id.tvDescripcionTarea)
         val tvUbicacion: TextView = itemView.findViewById(R.id.tvUbicacionTarea)
         val tvPiso: TextView = itemView.findViewById(R.id.tvPisoValor)
-        val tvFecha: TextView = itemView.findViewById(R.id.Tarea)          // tu TextView de fecha
+        val tvFecha: TextView = itemView.findViewById(R.id.Tarea)
         val tvEstado: TextView = itemView.findViewById(R.id.tvEstadotarea)
         val btnResponder: Button = itemView.findViewById(R.id.btnResponderFoto)
     }
@@ -39,9 +41,8 @@ class TareaAdapter(
         holder.tvDescripcion.text = tarea.descripcion
         holder.tvUbicacion.text = "Ubicación: ${tarea.ubicacion}"
         holder.tvPiso.text = tarea.piso
-        holder.tvEstado.text = "Estado: ${tarea.estado}"
 
-        // Formatear fecha si existe
+        // Fecha creación
         val fecha = tarea.fechaCreacion?.toDate()
         holder.tvFecha.text = if (fecha != null) {
             val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
@@ -50,16 +51,32 @@ class TareaAdapter(
             "Creada: -"
         }
 
-        // Cargar imagen con Glide
+        // Foto ANTES
         Glide.with(holder.itemView.context)
             .load(tarea.imagenUrl)
             .placeholder(R.drawable.camera_icon)
             .centerCrop()
             .into(holder.imgTarea)
 
-        // Por ahora no hacemos nada con el botón "Responder"
+        // Foto DESPUÉS + estado
+        if (tarea.respuestaUrl.isNotEmpty()) {
+            holder.imgRespuesta.visibility = View.VISIBLE
+            Glide.with(holder.itemView.context)
+                .load(tarea.respuestaUrl)
+                .placeholder(R.drawable.camera_icon)
+                .centerCrop()
+                .into(holder.imgRespuesta)
+
+            holder.tvEstado.text = "Estado: Completada"
+            holder.btnResponder.visibility = View.GONE   // ya respondida
+        } else {
+            holder.imgRespuesta.visibility = View.GONE
+            holder.tvEstado.text = "Estado: Pendiente"
+            holder.btnResponder.visibility = View.VISIBLE
+        }
+
         holder.btnResponder.setOnClickListener {
-            // Aquí después podemos abrir otra pantalla o marcar como resuelta, etc.
+            onResponderClick(tarea)
         }
     }
 }
