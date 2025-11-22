@@ -1,0 +1,23 @@
+<resources>
+
+
+    <style name="style_TextFields" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <!-- Fondo blanco -->
+        <item name="boxBackgroundMode">outline</item>
+        <item name="boxBackgroundColor">@color/white</item>
+
+        <!-- Borde -->
+        <item name="boxStrokeColor">@color/blue</item>
+        <item name="boxStrokeWidth">2dp</item>
+
+        <!-- Esquinas redondeadas -->
+        <item name="boxCornerRadiusTopStart">10dp</item>
+        <item name="boxCornerRadiusTopEnd">10dp</item>
+        <item name="boxCornerRadiusBottomStart">10dp</item>
+        <item name="boxCornerRadiusBottomEnd">10dp</item>
+
+        <!-- Hint (si luego creas el selector de hint) -->
+        <item name="hintTextColor">@color/sky</item>
+    </style>
+
+</resources>

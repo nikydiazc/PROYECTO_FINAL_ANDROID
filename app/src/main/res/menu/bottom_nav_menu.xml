@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_crear_tarea"
+        android:icon="@drawable/camera_icon"/>  <!-- asegúrate de tener este ícono -->
+    android:title="Crear Tarea" />
+    <item
+        android:id="@+id/nav_muro_tareas"
+        android:icon="@drawable/common_full_open_on_phone" /> <!-- asegúrate de tener este ícono -->
+    android:title="Muro Tareas" />
+    <item
+        android:id="@+id/nav_logout"
+        android:icon="@drawable/ic_launcher_foreground"     /> <!-- asegúrate de tener este ícono -->
+    android:title="Salir" />
+</menu>

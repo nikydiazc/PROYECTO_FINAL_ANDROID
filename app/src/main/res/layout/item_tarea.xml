@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardElevation="4dp"
+    app:cardCornerRadius="8dp"
+    android:background="@drawable/degradado_azul">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <!-- Miniatura al lado izquierdo (150dp x 200dp) -->
+        <ImageView
+            android:id="@+id/imgTarea"
+            android:layout_width="150dp"
+            android:layout_height="200dp"
+            android:background="@color/verde"
+            android:scaleType="centerInside"
+            android:src="@drawable/camera_icon"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Descripción (a la derecha del thumbnail) -->
+        <TextView
+            android:id="@+id/tvDescripcionTarea"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="12dp"
+            android:gravity="center"
+            android:text="Descripción de la tarea"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@id/imgTarea"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/imgTarea" />
+
+        <!-- Ubicación (texto separado) -->
+
+        <TextView
+            android:id="@+id/tvUbicacionTarea"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="20dp"
+            android:text="Ubicación:"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toEndOf="@id/imgTarea"
+            app:layout_constraintTop_toBottomOf="@+id/tvDescripcionTarea" />
+
+
+        <!-- Piso -->
+        <TextView
+            android:id="@+id/tvPisoValor"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="Piso 1"
+            android:textSize="14sp"
+            android:gravity="center"
+            app:layout_constraintStart_toEndOf="@id/imgTarea"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvUbicacionTarea" />
+
+        <!-- Fecha de creación -->
+        <TextView
+            android:id="@+id/Tarea"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:text="Creada: 17/11/2025 14:35"
+            android:textSize="12sp"
+            app:layout_constraintTop_toBottomOf="@id/tvPisoValor"
+            app:layout_constraintStart_toEndOf="@id/imgTarea"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginStart="12dp"/>
+
+        <!-- Estado debajo -->
+
+        <!-- Botón de respuesta con foto -->
+
+        <TextView
+            android:id="@+id/tvEstadotarea"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="64dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginEnd="44dp"
+            android:text="Estado: Pendiente"
+
+            android:textColor="@android:color/holo_red_dark"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/imgTarea"
+            app:layout_constraintTop_toBottomOf="@id/Tarea" />
+
+        <Button
+            android:id="@+id/btnResponderFoto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="67dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="50dp"
+            android:text="Responder"
+            android:textSize="14sp"
+            android:backgroundTint="@color/verde"
+            app:layout_constraintTop_toBottomOf="@id/tvEstadotarea"
+            app:layout_constraintStart_toEndOf="@id/imgTarea"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintVertical_bias="0.0" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>
