@@ -124,17 +124,18 @@
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.502"
+        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnImgAgregarFotografias" />
+        app:layout_constraintTop_toBottomOf="@+id/btnImgAgregarFotografias"
+        app:layout_constraintVertical_bias="0.0" />
 
     <ImageButton
         android:id="@+id/btnImgAgregarFotografias"
-        android:layout_width="100dp"
-        android:layout_height="80dp"
+        android:layout_width="120dp"
+        android:layout_height="100dp"
         android:layout_marginTop="32dp"
         android:background="@drawable/cornertxtview"
-        android:padding="12dp"
+        android:padding="30dp"
         android:scaleType="centerInside"
         android:src="@drawable/camera_icon"
         app:layout_constraintEnd_toEndOf="parent"

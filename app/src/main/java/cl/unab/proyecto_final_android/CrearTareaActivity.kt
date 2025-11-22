@@ -1,7 +1,9 @@
 package cl.unab.proyecto_final_android
 
+import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
@@ -14,6 +16,7 @@ import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
@@ -36,7 +39,7 @@ class CrearTareaActivity : AppCompatActivity() {
 
     private var imageUri: Uri? = null
 
-    // Selector de imagen desde galería
+    // Galería
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -46,7 +49,7 @@ class CrearTareaActivity : AppCompatActivity() {
         }
     }
 
-    // Foto rápida con cámara (bitmap)
+    // Cámara (recibe Bitmap)
     private val takePhotoLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
@@ -57,9 +60,21 @@ class CrearTareaActivity : AppCompatActivity() {
         }
     }
 
+    // Pedir permiso de cámara
+    private val requestCameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Si acepta, abrimos cámara
+            takePhotoLauncher.launch(null)
+        } else {
+            Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // ⚠️ Asegúrate que este layout sea el correcto
+        // Asegúrate que el layout existe con este nombre
         setContentView(R.layout.activity_crear_tarea)
 
         btnImgAgregarFotografias = findViewById(R.id.btnImgAgregarFotografias)
@@ -67,7 +82,7 @@ class CrearTareaActivity : AppCompatActivity() {
         autoUbicacion = findViewById(R.id.autoCompleteUbicacion)
         autoPiso = findViewById(R.id.autoCompleteUbicacion2)
         edtDescripcion = findViewById(R.id.txtDescripción)
-        progressBarCarga = findViewById(R.id.progressBarCarga) // 👈 IMPORTANTE
+        progressBarCarga = findViewById(R.id.progressBarCarga)
 
         btnImgAgregarFotografias.setOnClickListener {
             showPhotoPickerDialog()
@@ -84,8 +99,23 @@ class CrearTareaActivity : AppCompatActivity() {
             .setTitle("Seleccionar foto")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> pickImageLauncher.launch("image/*")
-                    1 -> takePhotoLauncher.launch(null)
+                    0 -> {
+                        // Galería
+                        pickImageLauncher.launch("image/*")
+                    }
+                    1 -> {
+                        // Cámara: revisar/solicitar permiso
+                        val granted = ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.CAMERA
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                        if (granted) {
+                            takePhotoLauncher.launch(null)
+                        } else {
+                            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    }
                 }
             }
             .show()
@@ -118,7 +148,6 @@ class CrearTareaActivity : AppCompatActivity() {
             return
         }
 
-        // 🔹 Mostrar loading
         setLoading(true)
 
         val storageRef = FirebaseStorage.getInstance().reference
