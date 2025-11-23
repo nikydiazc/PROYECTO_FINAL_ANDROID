@@ -240,19 +240,21 @@ class MuroTareasActivity : AppCompatActivity() {
     private fun confirmarRechazoTarea(tarea: Tarea, position: Int) {
         AlertDialog.Builder(this)
             .setTitle("Rechazar tarea")
-            .setMessage("¿Estás seguro de que deseas rechazar esta solicitud de limpieza?\n\nEsta acción no se puede deshacer.")
-            .setPositiveButton("Sí, rechazar") { _, _ ->
+            .setMessage("¿Estás seguro de que deseas eliminar esta solicitud de limpieza?\n\nEsta acción no se puede deshacer.")
+            .setPositiveButton("Sí, eliminar") { _, _ ->
                 rechazarTarea(tarea)
+                // No hacemos notifyItemChanged aquí porque ya la eliminamos en rechazarTarea
             }
             .setNegativeButton("Cancelar") { dialog, _ ->
                 dialog.dismiss()
-                adapter.notifyItemChanged(position) // volver la tarjeta a su lugar
+                adapter.notifyItemChanged(position) // devolver la tarjeta a su lugar
             }
             .setOnCancelListener {
                 adapter.notifyItemChanged(position)
             }
             .show()
     }
+
 
     private fun mostrarDialogoMarcarRealizada(tarea: Tarea) {
         AlertDialog.Builder(this)
@@ -287,13 +289,15 @@ class MuroTareasActivity : AppCompatActivity() {
     }
 
     private fun asignarTareaASupervisor(tarea: Tarea, supervisor: SupervisorUsuario) {
-        val docRef = firestore.collection("tareas").document(tarea.id)
+        if (tarea.id.isEmpty()) return
 
+        mostrarCargando(true)
+
+        val docRef = firestore.collection("tareas").document(tarea.id)
         docRef.update(
             mapOf(
                 "asignadaA" to supervisor.username,
-                // puedes cambiar a "En Proceso" si quieres diferenciar
-                "estado" to "Pendiente"
+                "estado" to "Pendiente" // o "En Proceso" si decides cambiarlo más adelante
             )
         ).addOnSuccessListener {
             Toast.makeText(
@@ -301,7 +305,9 @@ class MuroTareasActivity : AppCompatActivity() {
                 "Tarea asignada a ${supervisor.nombre}",
                 Toast.LENGTH_SHORT
             ).show()
+            mostrarCargando(false)
         }.addOnFailureListener { e ->
+            mostrarCargando(false)
             Toast.makeText(
                 this,
                 "Error al asignar: ${e.message}",
@@ -310,30 +316,39 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
+
     private fun rechazarTarea(tarea: Tarea) {
         if (tarea.id.isEmpty()) return
 
+        mostrarCargando(true)
+
         val docRef = firestore.collection("tareas").document(tarea.id)
-        docRef.update(
-            mapOf(
-                "estado" to "Rechazada",
-                "fechaRespuesta" to Timestamp.now()
-            )
-        ).addOnSuccessListener {
-            Toast.makeText(this, "Tarea rechazada", Toast.LENGTH_SHORT).show()
+        docRef.delete()
+            .addOnSuccessListener {
+                Toast.makeText(this, "Tarea eliminada", Toast.LENGTH_SHORT).show()
 
-            // 👉 quitar la tarea de las listas locales
-            listaOriginal.removeAll { it.id == tarea.id }
-            listaFiltrada.removeAll { it.id == tarea.id }
-            adapter.actualizarLista(listaFiltrada.toList())
+                // Sacar de las listas locales para que desaparezca al tiro
+                listaOriginal.removeAll { it.id == tarea.id }
+                listaFiltrada.removeAll { it.id == tarea.id }
+                adapter.actualizarLista(listaFiltrada.toList())
 
-        }.addOnFailureListener { e ->
-            Toast.makeText(this, "Error al rechazar: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
+                mostrarCargando(false)
+            }
+            .addOnFailureListener { e ->
+                mostrarCargando(false)
+                Toast.makeText(
+                    this,
+                    "Error al eliminar: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
     }
+
 
     private fun marcarTareaComoRealizada(tarea: Tarea) {
         if (tarea.id.isEmpty()) return
+
+        mostrarCargando(true)
 
         val docRef = firestore.collection("tareas").document(tarea.id)
 
@@ -341,21 +356,19 @@ class MuroTareasActivity : AppCompatActivity() {
             mapOf(
                 "estado" to "Realizada",
                 "fechaRespuesta" to Timestamp.now()
-                // más adelante aquí puedes agregar: "fotoDespuesUrl", "comentarioRespuesta", etc.
             )
         ).addOnSuccessListener {
             Toast.makeText(this, "Tarea marcada como realizada", Toast.LENGTH_SHORT).show()
 
-            // Si estamos viendo el muro de Pendientes, la sacamos de la lista local
             if (estadoActual == "Pendiente") {
                 listaOriginal.removeAll { it.id == tarea.id }
                 listaFiltrada.removeAll { it.id == tarea.id }
                 adapter.actualizarLista(listaFiltrada.toList())
             }
 
-            // Cuando cambies a "Realizadas", el listener de Firestore la traerá sola
-
+            mostrarCargando(false)
         }.addOnFailureListener { e ->
+            mostrarCargando(false)
             Toast.makeText(
                 this,
                 "Error al marcar como realizada: ${e.message}",
@@ -363,6 +376,7 @@ class MuroTareasActivity : AppCompatActivity() {
             ).show()
         }
     }
+
 
 
     private fun cargarTareasDesdeFirestore() {
@@ -424,4 +438,12 @@ class MuroTareasActivity : AppCompatActivity() {
         listaFiltrada.addAll(filtradas)
         adapter.actualizarLista(listaFiltrada.toList())
     }
+
+    private fun mostrarCargando(mostrar: Boolean) {
+        binding.progressBarMuro.visibility = if (mostrar) View.VISIBLE else View.GONE
+        binding.rvTareas.isEnabled = !mostrar
+        binding.btnTareasPendientes.isEnabled = !mostrar
+        binding.btnTareasRealizadas.isEnabled = !mostrar
+    }
+
 }

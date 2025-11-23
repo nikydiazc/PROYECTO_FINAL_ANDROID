@@ -2,94 +2,116 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
-    android:background="@drawable/degradado_azul">
+    android:background="@drawable/degradado_azul"
+    >
 
-    <!-- Botón Tareas Pendientes -->
-    <Button
-        android:id="@+id/btnTareasPendientes"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/Muro"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="Tareas pendientes"
-        android:textStyle="bold"
-        android:layout_marginRight="10dp"
-        android:layout_marginTop="30dp"
-        android:backgroundTint="@color/rojo"
-        android:textSize="14sp"
+        android:layout_height="0dp"
+        android:padding="15dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btnTareasRealizadas"
-        app:layout_constraintHorizontal_weight="1"
-        />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav">
 
-    <!-- Botón Tareas Realizadas -->
-    <Button
-        android:id="@+id/btnTareasRealizadas"
+    <!-- Filtros arriba: Pendientes / Realizadas -->
+    <LinearLayout
+        android:id="@+id/layoutFiltrosEstado"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Tareas realizadas"
-        android:textStyle="bold"
-        android:layout_marginLeft="10dp"
-        android:layout_marginTop="30dp"
-        android:backgroundTint="@color/verde"
-        android:textSize="14sp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:weightSum="2"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/btnTareasPendientes"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_weight="1"
-        />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <!-- Buscador por descripción -->
+        <Button
+            android:id="@+id/btnTareasPendientes"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Pendientes"
+            android:textStyle="bold"
+            android:backgroundTint="@color/rojo" />
+
+        <Button
+            android:id="@+id/btnTareasRealizadas"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="Realizadas"
+            android:textStyle="bold"
+            android:backgroundTint="@color/verde"
+            android:textColor="@color/white" />
+    </LinearLayout>
+
+    <!-- Buscador único -->
     <EditText
         android:id="@+id/etBuscarDescripcionOUbicacion"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:layout_marginTop="12dp"
         android:background="@drawable/cornertxtview"
         android:hint="Buscar por descripción o ubicación"
-        android:padding="8dp"
-        android:textColor="@android:color/black"
+        android:paddingHorizontal="12dp"
+        android:textColor="@color/gris"
         android:textSize="14sp"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutFiltrosEstado"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnTareasPendientes" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <TextView
-        android:id="@+id/tvFiltroPiso"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="3dp"
-        android:layout_marginBottom="552dp"
-        android:text="Filtrar por piso:"
-        android:textColor="@android:color/white"
-        android:textSize="14sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/etBuscarDescripcionOUbicacion" />
-
+    <!-- Filtro por piso -->
     <Spinner
         android:id="@+id/spFiltroPiso"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        app:layout_constraintBottom_toBottomOf="@id/tvFiltroPiso"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/tvFiltroPiso"
-        app:layout_constraintTop_toBottomOf="@+id/etBuscarDescripcionOUbicacion" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvTareas"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="180dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/cornertxtview"
+        app:layout_constraintTop_toBottomOf="@id/etBuscarDescripcionOUbicacion"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/spFiltroPiso" />
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- RecyclerView de tareas -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvTareas"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:paddingTop="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/spFiltroPiso" />
+
+    <!-- ProgressBar centrado -->
+    <ProgressBar
+        android:id="@+id/progressBarMuro"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+    android:id="@+id/bottomNav"
+    android:layout_width="0dp"
+    android:layout_height="80dp"
+    android:background="@color/white"
+    app:menu="@menu/bottom_nav_menu"
+    app:itemIconTint="@null"
+    app:itemTextColor="@color/nav_item_color"
+    app:labelVisibilityMode="labeled"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintEnd_toEndOf="parent" />
 
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
