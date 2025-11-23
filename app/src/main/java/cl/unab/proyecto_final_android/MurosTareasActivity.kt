@@ -1,177 +1,286 @@
 package cl.unab.proyecto_final_android
 
-import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.Toast
-import android.app.AlertDialog
-import android.content.Intent
-import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.AdapterView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import cl.unab.proyecto_final_android.databinding.ActivityMuroTareasBinding
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
-import com.google.firebase.storage.FirebaseStorage
-import java.util.UUID
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.firebase.auth.FirebaseAuth
-
+import com.google.firebase.firestore.ListenerRegistration
 
 class MurosTareasActivity : AppCompatActivity() {
 
-    private lateinit var bottomNav: BottomNavigationView
+    private lateinit var binding: ActivityMuroTareasBinding
+    private lateinit var firestore: FirebaseFirestore
 
-    private lateinit var rvTareas: RecyclerView
     private lateinit var adapter: TareaAdapter
-    private val listaTareas = mutableListOf<Tarea>()
 
-    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private var rolUsuario: String = LoginActivity.ROL_REALIZAR
 
-    private var tareaSeleccionada: Tarea? = null
-    private var respuestaImageUri: Uri? = null
+    // Estado actual del muro: "Pendiente" o "Realizada"
+    private var estadoActual: String = "Pendiente"
 
-    // Solo galería para foto de respuesta
-    private val pickRespuestaLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            respuestaImageUri = it
-            subirRespuestaAFirebase()
-        }
-    }
+    // Listas para filtros
+    private val listaOriginal = mutableListOf<Tarea>()
+    private val listaFiltrada = mutableListOf<Tarea>()
+
+    // Filtro de texto (busca en descripción o ubicación)
+    private var textoFiltro: String = ""
+
+    // Filtro por piso
+    private var pisoFiltro: String = "Todos"
+
+    private var listenerTareas: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_muro_tareas)
+        binding = ActivityMuroTareasBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        rvTareas = findViewById(R.id.rvTareas)
-        rvTareas.layoutManager = LinearLayoutManager(this)
+        firestore = FirebaseFirestore.getInstance()
 
-        adapter = TareaAdapter(listaTareas) { tarea ->
-            onResponderClick(tarea)
-        }
-        rvTareas.adapter = adapter
+        rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
+            ?: LoginActivity.ROL_REALIZAR
 
-        cargarTareas()
+        configurarRecyclerView()
+        configurarSpinnerPiso()
+        configurarEventos()
+        configurarSwipeSiAdmin()
 
-        bottomNav = findViewById(R.id.bottomNav)
-        bottomNav.selectedItemId = R.id.nav_muro_tareas
-
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_crear_tarea -> {
-                    startActivity(Intent(this, CrearTareaActivity::class.java))
-                    true
-                }
-
-                R.id.nav_muro_tareas -> {
-                    // Ya estás en el muro
-                    true
-                }
-
-                R.id.nav_usuario -> {
-                    FirebaseAuth.getInstance().signOut()
-                    val intent = Intent(this, LoginActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                    true
-                }
-
-                else -> false
-            }
-        }
-
+        cargarTareasDesdeFirestore()
     }
 
-    private fun cargarTareas() {
-        db.collection("tareas")
-            .orderBy("fechaCreacion", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    Toast.makeText(this, "Error al cargar tareas: ${e.message}", Toast.LENGTH_SHORT).show()
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    listaTareas.clear()
-                    for (doc in snapshot.documents) {
-                        val tarea = doc.toObject(Tarea::class.java)
-                        if (tarea != null) {
-                            // Guardar el id del documento
-                            listaTareas.add(tarea.copy(id = doc.id))
-                        }
-                    }
-                    adapter.notifyDataSetChanged()
-                }
-            }
-    }
-    private fun onResponderClick(tarea: Tarea) {
-        tareaSeleccionada = tarea
-
-        // Solo galería por ahora
-        val options = arrayOf("Galería")
-        AlertDialog.Builder(this)
-            .setTitle("Foto de respuesta")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> pickRespuestaLauncher.launch("image/*")
-                }
-            }
-            .show()
+    override fun onDestroy() {
+        super.onDestroy()
+        listenerTareas?.remove()
     }
 
-    private fun subirRespuestaAFirebase() {
-        val tarea = tareaSeleccionada ?: return
-        val uri = respuestaImageUri ?: return
-
-        val storageRef = FirebaseStorage.getInstance().reference
-        val fileRef = storageRef.child("respuestas/${tarea.id}_${UUID.randomUUID()}.jpg")
-
-        fileRef.putFile(uri)
-            .addOnSuccessListener {
-                fileRef.downloadUrl
-                    .addOnSuccessListener { downloadUri ->
-                        val urlRespuesta = downloadUri.toString()
-
-                        db.collection("tareas")
-                            .document(tarea.id)
-                            .update(
-                                mapOf(
-                                    "respuestaUrl" to urlRespuesta,
-                                    "estado" to "Completada",
-                                    "fechaRespuesta" to Timestamp.now()
-                                )
-                            )
-                            .addOnSuccessListener {
-                                Toast.makeText(
-                                    this,
-                                    "Respuesta registrada",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                            .addOnFailureListener { e ->
-                                Toast.makeText(
-                                    this,
-                                    "Error al actualizar tarea: ${e.message}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                    }
-                    .addOnFailureListener { e ->
-                        Toast.makeText(
-                            this,
-                            "Error al obtener URL de respuesta: ${e.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-            }
-            .addOnFailureListener { e ->
+    private fun configurarRecyclerView() {
+        adapter = TareaAdapter(
+            tareas = listaFiltrada,
+            rolUsuario = rolUsuario,
+            onResponderClick = { tarea ->
+                // Aquí más adelante implementamos flujo de respuesta (foto después, comentario, etc.)
                 Toast.makeText(
                     this,
-                    "Error al subir foto de respuesta: ${e.message}",
+                    "Responder tarea ${tarea.id} (pendiente implementar)",
                     Toast.LENGTH_SHORT
                 ).show()
             }
+        )
+
+        binding.rvTareas.apply {
+            layoutManager = LinearLayoutManager(this@MurosTareasActivity)
+            adapter = this@MurosTareasActivity.adapter
+        }
+    }
+
+    private fun configurarSpinnerPiso() {
+        val pisos = mutableListOf("Todos")
+        for (piso in 6 downTo -6) {
+            pisos.add(piso.toString())
+        }
+
+        val adapterPisos = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            pisos
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+
+        binding.spFiltroPiso.adapter = adapterPisos
+    }
+
+    private fun configurarEventos() {
+        // Botones de estado (Pendientes / Realizadas)
+        binding.btnTareasPendientes.setOnClickListener {
+            estadoActual = "Pendiente"
+            cargarTareasDesdeFirestore()
+        }
+
+        binding.btnTareasRealizadas.setOnClickListener {
+            estadoActual = "Realizada"
+            cargarTareasDesdeFirestore()
+        }
+
+        // Filtro por piso
+        binding.spFiltroPiso.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                pisoFiltro = parent?.getItemAtPosition(position)?.toString() ?: "Todos"
+                aplicarFiltrosLocales()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // Nada
+            }
+        }
+
+        // Búsqueda por descripción O ubicación (un solo campo)
+        binding.etBuscarDescripcionOUbicacion.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                textoFiltro = s?.toString()?.trim() ?: ""
+                aplicarFiltrosLocales()
+            }
+
+            override fun beforeTextChanged(
+                s: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int
+            ) { }
+
+            override fun onTextChanged(
+                s: CharSequence?,
+                start: Int,
+                before: Int,
+                count: Int
+            ) { }
+        })
+    }
+
+    private fun configurarSwipeSiAdmin() {
+        if (rolUsuario != LoginActivity.ROL_ADMIN) return
+
+        val callback = object : ItemTouchHelper.SimpleCallback(
+            0,
+            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean = false
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.bindingAdapterPosition
+                if (position == RecyclerView.NO_POSITION) return
+
+                val tarea = listaFiltrada.getOrNull(position) ?: return
+
+                when (direction) {
+                    ItemTouchHelper.LEFT -> {
+                        // Rechazar tarea
+                        rechazarTarea(tarea)
+                    }
+                    ItemTouchHelper.RIGHT -> {
+                        // Asignar a usuario genérico realizar_tarea (después podemos cambiar a supervisores específicos)
+                        asignarTareaAGenerico(tarea)
+                    }
+                }
+
+                // Volver a dibujar el ítem mientras Firestore se actualiza
+                adapter.notifyItemChanged(position)
+            }
+        }
+
+        ItemTouchHelper(callback).attachToRecyclerView(binding.rvTareas)
+    }
+
+    private fun rechazarTarea(tarea: Tarea) {
+        if (tarea.id.isEmpty()) return
+
+        val docRef = firestore.collection("tareas").document(tarea.id)
+        docRef.update(
+            mapOf(
+                "estado" to "Rechazada",
+                "fechaRespuesta" to Timestamp.now()
+            )
+        ).addOnSuccessListener {
+            Toast.makeText(this, "Tarea rechazada", Toast.LENGTH_SHORT).show()
+        }.addOnFailureListener { e ->
+            Toast.makeText(this, "Error al rechazar: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun asignarTareaAGenerico(tarea: Tarea) {
+        if (tarea.id.isEmpty()) return
+
+        val docRef = firestore.collection("tareas").document(tarea.id)
+        docRef.update(
+            mapOf(
+                "asignadaA" to "realizar_tarea",
+                "estado" to "Pendiente" // Podrías cambiar a "En Proceso" si quieres
+            )
+        ).addOnSuccessListener {
+            Toast.makeText(this, "Tarea asignada a realizar_tarea", Toast.LENGTH_SHORT).show()
+        }.addOnFailureListener { e ->
+            Toast.makeText(this, "Error al asignar: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun cargarTareasDesdeFirestore() {
+        // Detener listener anterior si existía
+        listenerTareas?.remove()
+
+        var query = firestore.collection("tareas")
+            .whereEqualTo("estado", estadoActual)
+
+        // Si quieres aplicar filtro de piso desde Firestore, podrías descomentar esto,
+        // pero ojo, estaría duplicado con el filtro local:
+        if (pisoFiltro != "Todos") {
+            query = query.whereEqualTo("piso", pisoFiltro)
+        }
+
+        listenerTareas = query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Toast.makeText(
+                    this,
+                    "Error al cargar tareas: ${error.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@addSnapshotListener
+            }
+
+            val documentos = snapshot?.documents ?: emptyList()
+            listaOriginal.clear()
+
+            for (doc in documentos) {
+                val tarea = doc.toObject(Tarea::class.java)
+                if (tarea != null) {
+                    listaOriginal.add(tarea)
+                }
+            }
+
+            aplicarFiltrosLocales()
+        }
+    }
+
+    private fun aplicarFiltrosLocales() {
+        val filtroLower = textoFiltro.lowercase()
+
+        val filtradas = listaOriginal.filter { tarea ->
+            val coincideTexto = if (filtroLower.isEmpty()) {
+                true
+            } else {
+                tarea.descripcion.lowercase().contains(filtroLower) ||
+                        tarea.ubicacion.lowercase().contains(filtroLower)
+            }
+
+            val coincidePiso = if (pisoFiltro == "Todos") {
+                true
+            } else {
+                tarea.piso == pisoFiltro
+            }
+
+            coincideTexto && coincidePiso
+        }
+
+        listaFiltrada.clear()
+        listaFiltrada.addAll(filtradas)
+        adapter.actualizarLista(listaFiltrada.toList())
     }
 }
