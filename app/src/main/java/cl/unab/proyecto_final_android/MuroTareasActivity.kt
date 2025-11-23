@@ -1,5 +1,6 @@
 package cl.unab.proyecto_final_android
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -77,7 +78,7 @@ class MuroTareasActivity : AppCompatActivity() {
         configurarSpinnerPiso()
         configurarEventos()
         configurarSwipeConRol()
-
+        configurarBottomNav()
         cargarTareasDesdeFirestore()
     }
 
@@ -111,6 +112,36 @@ class MuroTareasActivity : AppCompatActivity() {
             adapter = this@MuroTareasActivity.adapter
         }
     }
+
+    private fun configurarBottomNav() {
+        val bottomNav = binding.bottomNav
+
+        // marcar como seleccionada la opción del muro
+        bottomNav.selectedItemId = R.id.nav_muro_tareas  // AJUSTA este id según tu menú
+
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_crear_tarea -> {
+                    // Si ya estamos en muro, vamos a CrearTareaActivity
+                    startActivity(
+                        Intent(this, CrearTareaActivity::class.java).apply {
+                            putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
+                        }
+                    )
+                    // Opcional: finish() si no quieres volver con back
+                    true
+                }
+
+                R.id.nav_muro_tareas -> {
+                    // Ya estamos aquí
+                    true
+                }
+
+                else -> false
+            }
+        }
+    }
+
 
     private fun configurarSpinnerPiso() {
         val pisos = mutableListOf("Todos")

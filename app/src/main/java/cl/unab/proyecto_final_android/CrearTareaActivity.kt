@@ -1,6 +1,7 @@
 package cl.unab.proyecto_final_android
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -21,8 +22,8 @@ class CrearTareaActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var firestore: FirebaseFirestore
     private lateinit var storage: FirebaseStorage
-
     private var imagenUri: Uri? = null
+    private var rolUsuario: String = LoginActivity.ROL_CREAR
 
     // Selector de imagen de galería
     private val seleccionarImagenLauncher =
@@ -38,12 +39,40 @@ class CrearTareaActivity : AppCompatActivity() {
         binding = ActivityCrearTareaBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
+            ?: LoginActivity.ROL_CREAR
+
+        configurarBottomNav()
+
         auth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
         storage = FirebaseStorage.getInstance()
 
         configurarSpinnerPiso()
         configurarEventos()
+    }
+
+    private fun configurarBottomNav() {
+        val bottomNav = binding.bottomNav
+
+        bottomNav.selectedItemId = R.id.nav_crear_tarea // esta es la vista actual
+
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_crear_tarea -> {
+                    true // ya estamos aquí
+                }
+                R.id.nav_muro_tareas -> {
+                    startActivity(
+                        Intent(this, MuroTareasActivity::class.java).apply {
+                            putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
+                        }
+                    )
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     private fun configurarSpinnerPiso() {
