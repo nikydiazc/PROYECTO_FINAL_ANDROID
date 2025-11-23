@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import cl.unab.proyecto_final_android.Tarea
+import cl.unab.proyecto_final_android.TareaAdapter
 import cl.unab.proyecto_final_android.data.ModoMuro
 import cl.unab.proyecto_final_android.data.TareaRepository
 import cl.unab.proyecto_final_android.databinding.ActivityMuroTareasBinding
