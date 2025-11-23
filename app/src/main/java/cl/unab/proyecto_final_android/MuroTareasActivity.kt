@@ -266,24 +266,42 @@ class MuroTareasActivity : AppCompatActivity() {
     }
 
     private fun marcarBotonActivo(botonActivo: Button) {
-        val botones = listOf(
-            binding.btnTareasPendientes,
-            binding.btnTareasRealizadas,
-            binding.btnTareasAsignadas
-        )
+        val btnPendientes = binding.btnTareasPendientes
+        val btnRealizadas = binding.btnTareasRealizadas
+        val btnAsignadas = binding.btnTareasAsignadas
 
-        botones.forEach { btn ->
-            if (btn == botonActivo) {
-                btn.backgroundTintList =
-                    ContextCompat.getColorStateList(this, R.color.verde)
-                btn.setTextColor(ContextCompat.getColor(this, R.color.white))
-            } else {
-                btn.backgroundTintList =
-                    ContextCompat.getColorStateList(this, R.color.white)
-                btn.setTextColor(ContextCompat.getColor(this, R.color.black))
+        // Cambia estos colores por los tuyos reales del colors.xml
+        val colorPendienteActivo = ContextCompat.getColorStateList(this, R.color.rojo_pendiente_activo)
+        val colorPendienteInactivo = ContextCompat.getColorStateList(this, R.color.rojo)
+
+        val colorAsignadasActivo = ContextCompat.getColorStateList(this, R.color.naranjo_asignadas_activo)
+        val colorAsignadasInactivo = ContextCompat.getColorStateList(this, R.color.naranjo)
+
+        val colorRealizadasActivo = ContextCompat.getColorStateList(this, R.color.verde_realizadas_activo)
+        val colorRealizadasInactivo = ContextCompat.getColorStateList(this, R.color.verde)
+
+        fun activar(btn: Button, activo: Boolean) {
+            when (btn.id) {
+                R.id.btnTareasPendientes -> {
+                    btn.backgroundTintList = if (activo) colorPendienteActivo else colorPendienteInactivo
+                }
+                R.id.btnTareasAsignadas -> {
+                    btn.backgroundTintList = if (activo) colorAsignadasActivo else colorAsignadasInactivo
+                }
+                R.id.btnTareasRealizadas -> {
+                    btn.backgroundTintList = if (activo) colorRealizadasActivo else colorRealizadasInactivo
+                }
             }
+            // Texto SIEMPRE blanco
+            btn.setTextColor(ContextCompat.getColor(this, R.color.white))
         }
+
+        activar(btnPendientes, botonActivo == btnPendientes)
+        activar(btnAsignadas, botonActivo == btnAsignadas)
+        activar(btnRealizadas, botonActivo == btnRealizadas)
     }
+
+
 
     private fun mostrarCargando(mostrar: Boolean) {
         binding.progressBarMuro.visibility = if (mostrar) View.VISIBLE else View.GONE

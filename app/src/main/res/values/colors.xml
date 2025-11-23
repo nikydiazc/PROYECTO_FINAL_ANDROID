@@ -10,6 +10,17 @@
     <color name="rojo">#BD5454</color>
     <color name="naranjo">#BD7754</color>
 
+<!--    Colores de los botones-->
+    <color name="rojo_pendiente_activo">#D50000</color>
+    <color name="rojo_pendiente_inactivo">#FFCDD2</color>
+
+    <color name="naranjo_asignadas_activo">#F57C00</color>
+    <color name="naranjo_asignadas_inactivo">#FFE0B2</color>
+
+    <color name="verde_realizadas_activo">#2E7D32</color>
+    <color name="verde_realizadas_inactivo">#C8E6C9</color>
+
+
 
 </resources>
 
