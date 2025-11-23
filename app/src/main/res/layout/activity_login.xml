@@ -7,8 +7,7 @@
     android:layout_height="match_parent"
     android:padding="16dp"
     android:background="@drawable/degradado_azul"
-    android:id="@+id/activity_login"
-    >
+    android:id="@+id/activity_login">
 
     <TextView
         android:id="@+id/txtBienvenido"
@@ -26,7 +25,6 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <!--Ingreso de correo o usuario-->
-
     <EditText
         android:id="@+id/etCorreo"
         style="@style/style_TextFields"
@@ -60,24 +58,6 @@
 
     <!--Ingreso de contraseña-->
 
-    <EditText
-        android:id="@+id/etContrasena"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:background="@drawable/cornertxtview"
-        android:ems="10"
-        android:gravity="center"
-        android:hint="Contraseña"
-        android:inputType="textPassword"
-        android:textColor="@color/gris"
-        android:textSize="14sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/etCorreo"
-        app:layout_constraintVertical_bias="0.141" />
-
     <TextView
         android:id="@+id/txtIngresaTuContraseña"
         android:layout_width="wrap_content"
@@ -85,28 +65,59 @@
         android:layout_marginBottom="5dp"
         android:text="Ingresa la contraseña"
         android:textColor="@color/white"
-        app:layout_constraintBottom_toTopOf="@+id/etContrasena"
+        app:layout_constraintBottom_toTopOf="@+id/tilContrasena"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!--Botón de login-->
-    <Button
-        android:id="@+id/btnIngresar"
-        android:layout_width="wrap_content"
+    <!-- Contenedor con icono de ojo, SIN hint flotante -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilContrasena"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:layout_marginBottom="60dp"
-        android:backgroundTint="@color/verde"
-        android:ems="10"
-        android:text="Ingresar"
-        android:textSize="18sp"
-        android:textStyle="bold"
+        android:backgroundTint="@android:color/transparent"
+        app:endIconMode="password_toggle"
+        app:endIconTint="@color/blue"
+        app:hintEnabled="false"
+        app:boxBackgroundMode="none"
+        android:hint="Contraseña"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/etContrasena" />
+        app:layout_constraintTop_toBottomOf="@+id/etCorreo"
+        app:layout_constraintVertical_bias="0.141">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/etContrasena"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:background="@drawable/cornertxtview"
+        android:ems="10"
+        android:gravity="center"
+        android:hint="Contraseña"
+        android:inputType="textPassword"
+        android:textColor="@color/gris"
+        android:textSize="14sp" />
 
+    </com.google.android.material.textfield.TextInputLayout>
+
+        <!--Botón de login-->
+        <Button
+            android:id="@+id/btnIngresar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:layout_marginBottom="60dp"
+            android:backgroundTint="@color/verde"
+            android:ems="10"
+            android:text="Ingresar"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.498"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tilContrasena" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
