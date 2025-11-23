@@ -7,9 +7,26 @@ data class Tarea(
     val descripcion: String = "",
     val ubicacion: String = "",
     val piso: String = "",
-    val imagenUrl: String = "",
-    val estado: String = "",
+
+    // Imagen antes
+    val fotoAntesUrl: String = "",
+
+    // Imagen después (respuesta)
+    val fotoDespuesUrl: String = "",
+
+    // Estado de la tarea: "Pendiente", "En Proceso", "Realizada", "Rechazada"
+    val estado: String = "Pendiente",
+
+    // Fechas
     val fechaCreacion: Timestamp? = null,
-    val respuestaUrl: String = "",
-    val fechaRespuesta: Timestamp? = null
+    val fechaRespuesta: Timestamp? = null,
+
+    // Quién la creó (usuario o uid)
+    val creadaPor: String = "",
+
+    // A quién está asignada (usuario o uid del supervisor / realizar_tarea)
+    val asignadaA: String = "",
+
+    // Comentario opcional al responder la tarea
+    val comentarioRespuesta: String = ""
 )

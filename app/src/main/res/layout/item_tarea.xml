@@ -2,7 +2,6 @@
 <androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
@@ -15,37 +14,35 @@
         android:layout_height="wrap_content"
         android:padding="12dp">
 
-        <!-- Miniatura al lado izquierdo (150dp x 200dp) -->
+        <!-- Foto ANTES -->
         <ImageView
             android:id="@+id/imgTarea"
             android:layout_width="150dp"
             android:layout_height="200dp"
-            android:background="@color/verde"
+            android:background="@color/white"
             android:scaleType="centerInside"
             android:src="@drawable/camera_icon"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Foto de respuesta (DESPUÉS) -->
+        <!-- Foto DESPUÉS (solo en realizadas) -->
         <ImageView
             android:id="@+id/imgRespuesta"
             android:layout_width="150dp"
             android:layout_height="200dp"
             android:layout_marginTop="8dp"
-            android:scaleType="centerInside"
+            android:scaleType="centerCrop"
             android:src="@drawable/camera_icon"
             android:background="@android:color/transparent"
             android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/imgTarea" />
 
-
-
-        <!-- Descripción (a la derecha del thumbnail) -->
+        <!-- Descripción -->
         <TextView
             android:id="@+id/tvDescripcionTarea"
             android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:gravity="center"
             android:text="Descripción de la tarea"
@@ -55,23 +52,18 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/imgTarea" />
 
-        <!-- Ubicación (texto separado) -->
-
+        <!-- Ubicación -->
         <TextView
             android:id="@+id/tvUbicacionTarea"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="8dp"
             android:text="Ubicación:"
             android:textSize="14sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
-            app:layout_constraintTop_toBottomOf="@+id/tvDescripcionTarea" />
-
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvDescripcionTarea" />
 
         <!-- Piso -->
         <TextView
@@ -79,61 +71,66 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
             android:text="Piso 1"
             android:textSize="14sp"
-            android:gravity="center"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvUbicacionTarea" />
 
-        <!-- Fecha de creación -->
+        <!-- Fecha creación -->
         <TextView
-            android:id="@+id/Tarea"
+            android:id="@+id/tvFechaCreacion"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
             android:layout_marginTop="4dp"
-            android:gravity="center"
             android:text="Creada: 17/11/2025 14:35"
             android:textSize="12sp"
-            app:layout_constraintTop_toBottomOf="@id/tvPisoValor"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginStart="12dp"/>
+            app:layout_constraintTop_toBottomOf="@id/tvPisoValor" />
 
-        <!-- Estado debajo -->
-
-        <!-- Botón de respuesta con foto -->
-
+        <!-- Fecha respuesta (solo realizadas) -->
         <TextView
-            android:id="@+id/tvEstadotarea"
+            android:id="@+id/tvFechaRespuesta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="2dp"
+            android:text="Realizada: 18/11/2025 10:12"
+            android:textSize="12sp"
+            android:visibility="gone"
+            app:layout_constraintStart_toEndOf="@id/imgTarea"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvFechaCreacion" />
+
+        <!-- Estado -->
+        <TextView
+            android:id="@+id/tvEstadoTarea"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="64dp"
-            android:layout_marginTop="24dp"
-            android:layout_marginEnd="44dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="8dp"
             android:text="Estado: Pendiente"
-
             android:textColor="@android:color/holo_red_dark"
             android:textSize="14sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/imgTarea"
-            app:layout_constraintTop_toBottomOf="@id/Tarea" />
+            app:layout_constraintStart_toEndOf="@id/imgTarea"
+            app:layout_constraintTop_toBottomOf="@id/tvFechaRespuesta" />
 
+        <!-- Botón responder -->
         <Button
             android:id="@+id/btnResponderFoto"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="67dp"
+            android:layout_marginStart="12dp"
             android:layout_marginTop="8dp"
-            android:layout_marginEnd="50dp"
             android:text="Responder"
             android:textSize="14sp"
             android:backgroundTint="@color/verde"
-            app:layout_constraintTop_toBottomOf="@id/tvEstadotarea"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintTop_toBottomOf="@id/tvEstadoTarea"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>
