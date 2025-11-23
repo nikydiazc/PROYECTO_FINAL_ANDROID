@@ -29,6 +29,10 @@
             android:name=".MurosTareasActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".CrearTareaActivity"
+            android:exported="false" />
+
         <!-- FileProvider para manejo de imágenes -->
         <provider
             android:name="androidx.core.content.FileProvider"
