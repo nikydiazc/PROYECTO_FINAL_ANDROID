@@ -302,10 +302,17 @@ class MuroTareasActivity : AppCompatActivity() {
             )
         ).addOnSuccessListener {
             Toast.makeText(this, "Tarea rechazada", Toast.LENGTH_SHORT).show()
+
+            // 👉 quitar la tarea de las listas locales
+            listaOriginal.removeAll { it.id == tarea.id }
+            listaFiltrada.removeAll { it.id == tarea.id }
+            adapter.actualizarLista(listaFiltrada.toList())
+
         }.addOnFailureListener { e ->
             Toast.makeText(this, "Error al rechazar: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
+
 
     private fun cargarTareasDesdeFirestore() {
         // Detener listener anterior si existía
