@@ -15,7 +15,20 @@ class TareaAdapter(
     private val onResponderClick: (Tarea) -> Unit
 ) : RecyclerView.Adapter<TareaAdapter.TareaViewHolder>() {
 
-    inner class TareaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        // Mapa username -> nombre visible
+        private val mapaSupervisores = mapOf(
+            "delfina.cabello" to "Delfina Cabello (Poniente)",
+            "rodrigo.reyes" to "Rodrigo Reyes (Poniente)",
+            "maria.caruajulca" to "Maria Caruajulca (Poniente)",
+            "cristian.vergara" to "Cristian Vergara (Poniente)",
+            "enrique.mendez" to "Enrique Mendez (Poniente)",
+            "norma.marican" to "Norma Marican (Poniente)",
+            "john.vilchez" to "John Vilchez (Oriente)",
+            "libia.florez" to "Libia Florez (Oriente)",
+            "jorge.geisbuhler" to "Jorge Geisbuhler (Oriente)"
+        )
+
+        inner class TareaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val imgTarea: ImageView = itemView.findViewById(R.id.imgTarea)
         val imgRespuesta: ImageView = itemView.findViewById(R.id.imgRespuesta)
 
@@ -57,11 +70,14 @@ class TareaAdapter(
         holder.tvEstadoTarea.text = "Estado: ${tarea.estado}"
 
         // Supervisor asignado
-        holder.tvAsignadaA.text = if (tarea.asignadaA.isBlank()) {
+        val textoAsignadaA = if (tarea.asignadaA.isBlank()) {
             "Asignada a: -"
         } else {
-            "Asignada a: ${tarea.asignadaA}"
+            val nombreVisible = mapaSupervisores[tarea.asignadaA] ?: tarea.asignadaA
+            "Asignada a: $nombreVisible"
         }
+        holder.tvAsignadaA.text = textoAsignadaA
+
 
         // Imagen ANTES
         if (tarea.fotoAntesUrl.isNotBlank()) {
