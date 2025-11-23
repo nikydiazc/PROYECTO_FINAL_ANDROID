@@ -2,14 +2,13 @@ package cl.unab.proyecto_final_android
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
-import android.widget.AdapterView
+import android.widget.Button
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -17,11 +16,13 @@ import cl.unab.proyecto_final_android.databinding.ActivityMuroTareasBinding
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 
 class MuroTareasActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMuroTareasBinding
     private lateinit var firestore: FirebaseFirestore
+    private var usernameActual: String = ""
 
     private lateinit var adapter: TareaAdapter
 
@@ -29,6 +30,7 @@ class MuroTareasActivity : AppCompatActivity() {
 
     // Estado actual del muro: "Pendiente" o "Realizada"
     private var estadoActual: String = "Pendiente"
+    private var modoMuro: String = "PENDIENTES"
 
     // Listas para filtros
     private val listaOriginal = mutableListOf<Tarea>()
@@ -73,6 +75,10 @@ class MuroTareasActivity : AppCompatActivity() {
 
         rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
             ?: LoginActivity.ROL_REALIZAR
+
+        usernameActual = intent.getStringExtra(LoginActivity.EXTRA_USERNAME) ?: ""
+
+        Toast.makeText(this, "Rol: $rolUsuario - User: $usernameActual", Toast.LENGTH_LONG).show()
 
         configurarRecyclerView()
         configurarSpinnerPiso()
@@ -161,57 +167,44 @@ class MuroTareasActivity : AppCompatActivity() {
     }
 
     private fun configurarEventos() {
-        // Botones de estado (Pendientes / Realizadas)
+
         binding.btnTareasPendientes.setOnClickListener {
-            estadoActual = "Pendiente"
+            modoMuro = "PENDIENTES"
             cargarTareasDesdeFirestore()
+            marcarBotonActivo(binding.btnTareasPendientes)
         }
 
         binding.btnTareasRealizadas.setOnClickListener {
-            estadoActual = "Realizada"
+            modoMuro = "REALIZADAS"
             cargarTareasDesdeFirestore()
+            marcarBotonActivo(binding.btnTareasRealizadas)
         }
 
-        // Filtro por piso
-        binding.spFiltroPiso.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
-                pisoFiltro = parent?.getItemAtPosition(position)?.toString() ?: "Todos"
-                aplicarFiltrosLocales()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                // Nada
-            }
+        binding.btnTareasAsignadas.setOnClickListener {
+            modoMuro = "ASIGNADAS"
+            cargarTareasDesdeFirestore()
+            marcarBotonActivo(binding.btnTareasAsignadas)
         }
-
-        // Búsqueda por descripción O ubicación (un solo campo)
-        binding.etBuscarDescripcionOUbicacion.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                textoFiltro = s?.toString()?.trim() ?: ""
-                aplicarFiltrosLocales()
-            }
-
-            override fun beforeTextChanged(
-                s: CharSequence?,
-                start: Int,
-                count: Int,
-                after: Int
-            ) { }
-
-            override fun onTextChanged(
-                s: CharSequence?,
-                start: Int,
-                before: Int,
-                count: Int
-            ) { }
-        })
     }
 
+    //Se marca el botón activo: PENDIENTES, REALIZADAS O ASIGNADAS
+    private fun marcarBotonActivo(botonActivo: Button) {
+        val botones = listOf(
+            binding.btnTareasPendientes,
+            binding.btnTareasRealizadas,
+            binding.btnTareasAsignadas
+        )
+
+        botones.forEach { btn ->
+            if (btn == botonActivo) {
+                btn.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.verde))
+                btn.setTextColor(ContextCompat.getColor(this, R.color.white))
+            } else {
+                btn.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white))
+                btn.setTextColor(ContextCompat.getColor(this, R.color.black))
+            }
+        }
+    }
     private fun configurarSwipeConRol() {
         val callback = object : ItemTouchHelper.SimpleCallback(
             0,
@@ -229,31 +222,9 @@ class MuroTareasActivity : AppCompatActivity() {
 
                 val tarea = listaFiltrada.getOrNull(position) ?: return
 
-                // Solo admin puede hacer swipe "real"
-                if (rolUsuario != LoginActivity.ROL_ADMIN) {
-                    Toast.makeText(
-                        this@MuroTareasActivity,
-                        "Solo el administrador puede asignar o rechazar tareas",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    adapter.notifyItemChanged(position)
-                    return
-                }
-
-                // Solo tiene sentido en Pendientes
-                if (tarea.estado != "Pendiente") {
-                    Toast.makeText(
-                        this@MuroTareasActivity,
-                        "Solo se pueden asignar o rechazar tareas pendientes",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    adapter.notifyItemChanged(position)
-                    return
-                }
-
                 when (direction) {
                     ItemTouchHelper.LEFT -> {
-                        // 👈 Rechazar con confirmación
+                        // 👈 Eliminar con confirmación
                         confirmarRechazoTarea(tarea, position)
                     }
                     ItemTouchHelper.RIGHT -> {
@@ -268,17 +239,19 @@ class MuroTareasActivity : AppCompatActivity() {
         ItemTouchHelper(callback).attachToRecyclerView(binding.rvTareas)
     }
 
+
+
     private fun confirmarRechazoTarea(tarea: Tarea, position: Int) {
         AlertDialog.Builder(this)
-            .setTitle("Rechazar tarea")
+            .setTitle("Eliminar tarea")
             .setMessage("¿Estás seguro de que deseas eliminar esta solicitud de limpieza?\n\nEsta acción no se puede deshacer.")
             .setPositiveButton("Sí, eliminar") { _, _ ->
                 rechazarTarea(tarea)
-                // No hacemos notifyItemChanged aquí porque ya la eliminamos en rechazarTarea
+                // no hacemos notifyItemChanged aquí porque la eliminamos en la lista
             }
             .setNegativeButton("Cancelar") { dialog, _ ->
                 dialog.dismiss()
-                adapter.notifyItemChanged(position) // devolver la tarjeta a su lugar
+                adapter.notifyItemChanged(position) // devolvemos la tarjeta a su lugar
             }
             .setOnCancelListener {
                 adapter.notifyItemChanged(position)
@@ -347,7 +320,6 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
-
     private fun rechazarTarea(tarea: Tarea) {
         if (tarea.id.isEmpty()) return
 
@@ -358,7 +330,7 @@ class MuroTareasActivity : AppCompatActivity() {
             .addOnSuccessListener {
                 Toast.makeText(this, "Tarea eliminada", Toast.LENGTH_SHORT).show()
 
-                // Sacar de las listas locales para que desaparezca al tiro
+                // Sacar de las listas locales para que desaparezca
                 listaOriginal.removeAll { it.id == tarea.id }
                 listaFiltrada.removeAll { it.id == tarea.id }
                 adapter.actualizarLista(listaFiltrada.toList())
@@ -408,20 +380,41 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
-
-
     private fun cargarTareasDesdeFirestore() {
-        // Detener listener anterior si existía
+        // cortar listener anterior si existía
         listenerTareas?.remove()
 
-        var query = firestore.collection("tareas")
-            .whereEqualTo("estado", estadoActual)
+        mostrarCargando(true)
 
-        if (pisoFiltro != "Todos") {
-            query = query.whereEqualTo("piso", pisoFiltro)
+        val coleccion = firestore.collection("tareas")
+
+        // 1) armamos el Query según el modo del muro
+        val query: Query = when (modoMuro) {
+            "PENDIENTES" -> {
+                coleccion.whereEqualTo("estado", "Pendiente")
+            }
+            "REALIZADAS" -> {
+                coleccion.whereEqualTo("estado", "Realizada")
+            }
+            "ASIGNADAS" -> {
+                // ADMIN ve todas las tareas asignadas (asignadaA != "")
+                if (rolUsuario == LoginActivity.ROL_ADMIN) {
+                    coleccion.whereNotEqualTo("asignadaA", "")
+                } else {
+                    // supervisores ven solo las suyas
+                    coleccion.whereEqualTo("asignadaA", usernameActual)
+                }
+            }
+            else -> {
+                // por si acaso
+                coleccion
+            }
         }
 
+        // 2) escuchamos los cambios del query ya armado
         listenerTareas = query.addSnapshotListener { snapshot, error ->
+            mostrarCargando(false)
+
             if (error != null) {
                 Toast.makeText(
                     this,
@@ -432,10 +425,11 @@ class MuroTareasActivity : AppCompatActivity() {
             }
 
             val documentos = snapshot?.documents ?: emptyList()
+
             listaOriginal.clear()
 
             for (doc in documentos) {
-                val tarea = doc.toObject(Tarea::class.java)
+                val tarea = doc.toObject(Tarea::class.java)?.copy(id = doc.id)
                 if (tarea != null) {
                     listaOriginal.add(tarea)
                 }
@@ -444,6 +438,7 @@ class MuroTareasActivity : AppCompatActivity() {
             aplicarFiltrosLocales()
         }
     }
+
 
     private fun aplicarFiltrosLocales() {
         val filtroLower = textoFiltro.lowercase()

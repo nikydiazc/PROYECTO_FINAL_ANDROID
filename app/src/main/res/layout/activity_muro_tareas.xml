@@ -24,7 +24,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:weightSum="2"
+        android:weightSum="3"
+        android:paddingTop="40dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -37,6 +38,17 @@
             android:text="Pendientes"
             android:textStyle="bold"
             android:backgroundTint="@color/rojo" />
+
+        <Button
+            android:id="@+id/btnTareasAsignadas"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="Asignadas"
+            android:textStyle="bold"
+            android:backgroundTint="@color/naranjo"
+            android:textColor="@color/white" />
 
         <Button
             android:id="@+id/btnTareasRealizadas"
