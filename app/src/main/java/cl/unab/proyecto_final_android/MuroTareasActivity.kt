@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import android.widget.AdapterView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -16,7 +17,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
-class MurosTareasActivity : AppCompatActivity() {
+class MuroTareasActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMuroTareasBinding
     private lateinit var firestore: FirebaseFirestore
@@ -39,6 +40,28 @@ class MurosTareasActivity : AppCompatActivity() {
     private var pisoFiltro: String = "Todos"
 
     private var listenerTareas: ListenerRegistration? = null
+
+    // Lista de supervisores disponibles para asignar tareas
+    private data class SupervisorUsuario(
+        val nombre: String,
+        val username: String,
+        val zona: String
+    )
+
+    private val supervisores = listOf(
+        // Poniente
+        SupervisorUsuario("Delfina Cabello", "delfina.cabello", "Poniente"),
+        SupervisorUsuario("Rodrigo Reyes", "rodrigo.reyes", "Poniente"),
+        SupervisorUsuario("Maria Caruajulca", "maria.caruajulca", "Poniente"),
+        SupervisorUsuario("Cristian Vergara", "cristian.vergara", "Poniente"),
+        SupervisorUsuario("Enrique Mendez", "enrique.mendez", "Poniente"),
+        SupervisorUsuario("Norma Marican", "norma.marican", "Poniente"),
+
+        // Oriente
+        SupervisorUsuario("John Vilchez", "john.vilchez", "Oriente"),
+        SupervisorUsuario("Libia Florez", "libia.florez", "Oriente"),
+        SupervisorUsuario("Jorge Geisbuhler", "jorge.geisbuhler", "Oriente")
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,8 +101,8 @@ class MurosTareasActivity : AppCompatActivity() {
         )
 
         binding.rvTareas.apply {
-            layoutManager = LinearLayoutManager(this@MurosTareasActivity)
-            adapter = this@MurosTareasActivity.adapter
+            layoutManager = LinearLayoutManager(this@MuroTareasActivity)
+            adapter = this@MuroTareasActivity.adapter
         }
     }
 
@@ -173,12 +196,12 @@ class MurosTareasActivity : AppCompatActivity() {
 
                 when (direction) {
                     ItemTouchHelper.LEFT -> {
-                        // Rechazar tarea
-                        rechazarTarea(tarea)
+                        // 👉 Asignar tarea: mostrar lista de supervisores
+                        mostrarDialogoAsignarSupervisor(tarea)
                     }
                     ItemTouchHelper.RIGHT -> {
-                        // Asignar a usuario genérico realizar_tarea (después podemos cambiar a supervisores específicos)
-                        asignarTareaAGenerico(tarea)
+                        // 👉 Rechazar tarea
+                        rechazarTarea(tarea)
                     }
                 }
 
@@ -188,6 +211,47 @@ class MurosTareasActivity : AppCompatActivity() {
         }
 
         ItemTouchHelper(callback).attachToRecyclerView(binding.rvTareas)
+    }
+
+    private fun mostrarDialogoAsignarSupervisor(tarea: Tarea) {
+        if (tarea.id.isEmpty()) return
+
+        val nombres = supervisores.map { "${it.nombre} (${it.zona})" }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Asignar tarea a supervisor")
+            .setItems(nombres) { _, which ->
+                val supervisorSeleccionado = supervisores[which]
+                asignarTareaASupervisor(tarea, supervisorSeleccionado)
+            }
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun asignarTareaASupervisor(tarea: Tarea, supervisor: SupervisorUsuario) {
+        val docRef = firestore.collection("tareas").document(tarea.id)
+
+        docRef.update(
+            mapOf(
+                "asignadaA" to supervisor.username,
+                // puedes cambiar a "En Proceso" si quieres diferenciar
+                "estado" to "Pendiente"
+            )
+        ).addOnSuccessListener {
+            Toast.makeText(
+                this,
+                "Tarea asignada a ${supervisor.nombre}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }.addOnFailureListener { e ->
+            Toast.makeText(
+                this,
+                "Error al asignar: ${e.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun rechazarTarea(tarea: Tarea) {
@@ -206,22 +270,6 @@ class MurosTareasActivity : AppCompatActivity() {
         }
     }
 
-    private fun asignarTareaAGenerico(tarea: Tarea) {
-        if (tarea.id.isEmpty()) return
-
-        val docRef = firestore.collection("tareas").document(tarea.id)
-        docRef.update(
-            mapOf(
-                "asignadaA" to "realizar_tarea",
-                "estado" to "Pendiente" // Podrías cambiar a "En Proceso" si quieres
-            )
-        ).addOnSuccessListener {
-            Toast.makeText(this, "Tarea asignada a realizar_tarea", Toast.LENGTH_SHORT).show()
-        }.addOnFailureListener { e ->
-            Toast.makeText(this, "Error al asignar: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     private fun cargarTareasDesdeFirestore() {
         // Detener listener anterior si existía
         listenerTareas?.remove()
@@ -229,8 +277,6 @@ class MurosTareasActivity : AppCompatActivity() {
         var query = firestore.collection("tareas")
             .whereEqualTo("estado", estadoActual)
 
-        // Si quieres aplicar filtro de piso desde Firestore, podrías descomentar esto,
-        // pero ojo, estaría duplicado con el filtro local:
         if (pisoFiltro != "Todos") {
             query = query.whereEqualTo("piso", pisoFiltro)
         }

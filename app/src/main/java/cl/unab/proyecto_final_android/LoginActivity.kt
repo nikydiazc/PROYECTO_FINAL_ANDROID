@@ -2,7 +2,6 @@ package cl.unab.proyecto_final_android
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import cl.unab.proyecto_final_android.databinding.ActivityLoginBinding
@@ -103,7 +102,7 @@ class LoginActivity : AppCompatActivity() {
 
             ROL_ADMIN, ROL_REALIZAR -> {
                 // Ambos van al muro de tareas, pero con distinto rol
-                val intent = Intent(this, MurosTareasActivity::class.java).apply {
+                val intent = Intent(this, MuroTareasActivity::class.java).apply {
                     putExtra(EXTRA_ROL_USUARIO, rol)
                 }
                 startActivity(intent)
