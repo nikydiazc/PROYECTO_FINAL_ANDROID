@@ -48,27 +48,28 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:hint="Buscar por descripción o ubicación"
         android:background="@drawable/cornertxtview"
+        android:hint="Buscar por descripción o ubicación"
         android:padding="8dp"
         android:textColor="@android:color/black"
         android:textSize="14sp"
-        app:layout_constraintTop_toBottomOf="@id/btnTareasPendientes"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnTareasPendientes" />
 
     <TextView
         android:id="@+id/tvFiltroPiso"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
+        android:layout_marginTop="3dp"
         android:layout_marginBottom="552dp"
         android:text="Filtrar por piso:"
         android:textColor="@android:color/white"
         android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/etBuscarDescripcionOUbicacion" />
 
     <Spinner
         android:id="@+id/spFiltroPiso"
@@ -77,7 +78,8 @@
         android:layout_marginStart="8dp"
         app:layout_constraintBottom_toBottomOf="@id/tvFiltroPiso"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/tvFiltroPiso" />
+        app:layout_constraintStart_toEndOf="@id/tvFiltroPiso"
+        app:layout_constraintTop_toBottomOf="@+id/etBuscarDescripcionOUbicacion" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvTareas"

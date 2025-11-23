@@ -91,14 +91,20 @@ class MuroTareasActivity : AppCompatActivity() {
             tareas = listaFiltrada,
             rolUsuario = rolUsuario,
             onResponderClick = { tarea ->
-                // Aquí más adelante implementamos flujo de respuesta (foto después, comentario, etc.)
-                Toast.makeText(
-                    this,
-                    "Responder tarea ${tarea.id} (pendiente implementar)",
-                    Toast.LENGTH_SHORT
-                ).show()
+                // Solo tiene sentido en pendientes
+                if (tarea.estado != "Pendiente") {
+                    Toast.makeText(
+                        this,
+                        "Solo se pueden marcar como realizadas las tareas pendientes",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@TareaAdapter
+                }
+
+                mostrarDialogoMarcarRealizada(tarea)
             }
         )
+
 
         binding.rvTareas.apply {
             layoutManager = LinearLayoutManager(this@MuroTareasActivity)
@@ -248,6 +254,19 @@ class MuroTareasActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun mostrarDialogoMarcarRealizada(tarea: Tarea) {
+        AlertDialog.Builder(this)
+            .setTitle("Marcar tarea como realizada")
+            .setMessage("¿Confirmas que esta solicitud de limpieza fue atendida correctamente?")
+            .setPositiveButton("Sí, marcar como realizada") { _, _ ->
+                marcarTareaComoRealizada(tarea)
+            }
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
 
 
     private fun mostrarDialogoAsignarSupervisor(tarea: Tarea) {
@@ -310,6 +329,38 @@ class MuroTareasActivity : AppCompatActivity() {
 
         }.addOnFailureListener { e ->
             Toast.makeText(this, "Error al rechazar: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun marcarTareaComoRealizada(tarea: Tarea) {
+        if (tarea.id.isEmpty()) return
+
+        val docRef = firestore.collection("tareas").document(tarea.id)
+
+        docRef.update(
+            mapOf(
+                "estado" to "Realizada",
+                "fechaRespuesta" to Timestamp.now()
+                // más adelante aquí puedes agregar: "fotoDespuesUrl", "comentarioRespuesta", etc.
+            )
+        ).addOnSuccessListener {
+            Toast.makeText(this, "Tarea marcada como realizada", Toast.LENGTH_SHORT).show()
+
+            // Si estamos viendo el muro de Pendientes, la sacamos de la lista local
+            if (estadoActual == "Pendiente") {
+                listaOriginal.removeAll { it.id == tarea.id }
+                listaFiltrada.removeAll { it.id == tarea.id }
+                adapter.actualizarLista(listaFiltrada.toList())
+            }
+
+            // Cuando cambies a "Realizadas", el listener de Firestore la traerá sola
+
+        }.addOnFailureListener { e ->
+            Toast.makeText(
+                this,
+                "Error al marcar como realizada: ${e.message}",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
