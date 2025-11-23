@@ -110,7 +110,7 @@ class LoginActivity : AppCompatActivity() {
             }
 
             else -> {
-                toast("Rol no reconocido")
+                toast("Usuario no reconocido")
             }
         }
     }
