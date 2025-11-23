@@ -76,7 +76,7 @@ class MuroTareasActivity : AppCompatActivity() {
         configurarRecyclerView()
         configurarSpinnerPiso()
         configurarEventos()
-        configurarSwipeSiAdmin()
+        configurarSwipeConRol()
 
         cargarTareasDesdeFirestore()
     }
@@ -175,9 +175,7 @@ class MuroTareasActivity : AppCompatActivity() {
         })
     }
 
-    private fun configurarSwipeSiAdmin() {
-        if (rolUsuario != LoginActivity.ROL_ADMIN) return
-
+    private fun configurarSwipeConRol() {
         val callback = object : ItemTouchHelper.SimpleCallback(
             0,
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
@@ -194,24 +192,63 @@ class MuroTareasActivity : AppCompatActivity() {
 
                 val tarea = listaFiltrada.getOrNull(position) ?: return
 
-                when (direction) {
-                    ItemTouchHelper.LEFT -> {
-                        // 👉 Asignar tarea: mostrar lista de supervisores
-                        mostrarDialogoAsignarSupervisor(tarea)
-                    }
-                    ItemTouchHelper.RIGHT -> {
-                        // 👉 Rechazar tarea
-                        rechazarTarea(tarea)
-                    }
+                // Solo admin puede hacer swipe "real"
+                if (rolUsuario != LoginActivity.ROL_ADMIN) {
+                    Toast.makeText(
+                        this@MuroTareasActivity,
+                        "Solo el administrador puede asignar o rechazar tareas",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    adapter.notifyItemChanged(position)
+                    return
                 }
 
-                // Volver a dibujar el ítem mientras Firestore se actualiza
-                adapter.notifyItemChanged(position)
+                // Solo tiene sentido en Pendientes
+                if (tarea.estado != "Pendiente") {
+                    Toast.makeText(
+                        this@MuroTareasActivity,
+                        "Solo se pueden asignar o rechazar tareas pendientes",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    adapter.notifyItemChanged(position)
+                    return
+                }
+
+                when (direction) {
+                    ItemTouchHelper.LEFT -> {
+                        // 👈 Rechazar con confirmación
+                        confirmarRechazoTarea(tarea, position)
+                    }
+                    ItemTouchHelper.RIGHT -> {
+                        // 👉 Asignar a supervisor
+                        mostrarDialogoAsignarSupervisor(tarea)
+                        adapter.notifyItemChanged(position)
+                    }
+                }
             }
         }
 
         ItemTouchHelper(callback).attachToRecyclerView(binding.rvTareas)
     }
+
+    private fun confirmarRechazoTarea(tarea: Tarea, position: Int) {
+        AlertDialog.Builder(this)
+            .setTitle("Rechazar tarea")
+            .setMessage("¿Estás seguro de que deseas rechazar esta solicitud de limpieza?\n\nEsta acción no se puede deshacer.")
+            .setPositiveButton("Sí, rechazar") { _, _ ->
+                rechazarTarea(tarea)
+            }
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+                adapter.notifyItemChanged(position) // volver la tarjeta a su lugar
+            }
+            .setOnCancelListener {
+                adapter.notifyItemChanged(position)
+            }
+            .show()
+    }
+
+
 
     private fun mostrarDialogoAsignarSupervisor(tarea: Tarea) {
         if (tarea.id.isEmpty()) return
