@@ -17,7 +17,7 @@
         android:theme="@style/Theme.PROYECTO_FINAL_ANDROID">
 
         <activity
-            android:name=".CrearTareaActivity"
+            android:name=".LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,7 +28,6 @@
         <activity
             android:name=".MurosTareasActivity"
             android:exported="false" />
-
 
         <!-- FileProvider para manejo de imágenes -->
         <provider

@@ -28,7 +28,7 @@
     <!--Ingreso de correo o usuario-->
 
     <EditText
-        android:id="@+id/TxtCorreo"
+        android:id="@+id/etCorreo"
         style="@style/style_TextFields"
         android:layout_width="0dp"
         android:layout_height="50dp"
@@ -53,7 +53,7 @@
         android:layout_marginBottom="9dp"
         android:text="Ingresa tu correo eléctronico o usuario"
         android:textColor="@color/white"
-        app:layout_constraintBottom_toTopOf="@+id/TxtCorreo"
+        app:layout_constraintBottom_toTopOf="@+id/etCorreo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent" />
@@ -61,7 +61,7 @@
     <!--Ingreso de contraseña-->
 
     <EditText
-        android:id="@+id/TxtContraseña"
+        android:id="@+id/etContrasena"
         android:layout_width="0dp"
         android:layout_height="50dp"
         android:background="@drawable/cornertxtview"
@@ -75,7 +75,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/TxtCorreo"
+        app:layout_constraintTop_toBottomOf="@+id/etCorreo"
         app:layout_constraintVertical_bias="0.141" />
 
     <TextView
@@ -85,7 +85,7 @@
         android:layout_marginBottom="5dp"
         android:text="Ingresa la contraseña"
         android:textColor="@color/white"
-        app:layout_constraintBottom_toTopOf="@+id/TxtContraseña"
+        app:layout_constraintBottom_toTopOf="@+id/etContrasena"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent" />
@@ -106,7 +106,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/TxtContraseña" />
+        app:layout_constraintTop_toBottomOf="@+id/etContrasena" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
 
