@@ -1,264 +1,218 @@
 package cl.unab.proyecto_final_android
 
-import android.Manifest
 import android.app.AlertDialog
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
-import android.widget.AutoCompleteTextView
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.ProgressBar
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
+import cl.unab.proyecto_final_android.databinding.ActivityCrearTareaBinding
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
-import java.io.File
-import java.io.FileOutputStream
-import java.util.UUID
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.firebase.auth.FirebaseAuth
-
 
 class CrearTareaActivity : AppCompatActivity() {
 
-    // Firestore
-    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
-    private lateinit var bottomNav : BottomNavigationView
+    private lateinit var binding: ActivityCrearTareaBinding
 
-    private lateinit var btnImgAgregarFotografias: ImageButton
-    private lateinit var btnIngresar: Button
-    private lateinit var autoUbicacion: AutoCompleteTextView
-    private lateinit var autoPiso: AutoCompleteTextView
-    private lateinit var edtDescripcion: EditText
-    private lateinit var progressBarCarga: ProgressBar
+    private lateinit var auth: FirebaseAuth
+    private lateinit var firestore: FirebaseFirestore
+    private lateinit var storage: FirebaseStorage
 
-    private var imageUri: Uri? = null
+    private var imagenUri: Uri? = null
 
-    // Galería
-    private val pickImageLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            imageUri = it
-            btnImgAgregarFotografias.setImageURI(it)
+    // Selector de imagen de galería
+    private val seleccionarImagenLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                imagenUri = uri
+                binding.btnImgAgregarFotografias.setImageURI(uri)
+            }
         }
-    }
-
-    // Cámara (recibe Bitmap)
-    private val takePhotoLauncher = registerForActivityResult(
-        ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        bitmap?.let {
-            val uri = saveBitmapToCacheAndGetUri(it)
-            imageUri = uri
-            btnImgAgregarFotografias.setImageBitmap(it)
-        }
-    }
-
-    // Pedir permiso de cámara
-    private val requestCameraPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            // Si acepta, abrimos cámara
-            takePhotoLauncher.launch(null)
-        } else {
-            Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        binding = ActivityCrearTareaBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        setContentView(R.layout.activity_crear_tarea)
+        auth = FirebaseAuth.getInstance()
+        firestore = FirebaseFirestore.getInstance()
+        storage = FirebaseStorage.getInstance()
 
-        btnImgAgregarFotografias = findViewById(R.id.btnImgAgregarFotografias)
-        btnIngresar = findViewById(R.id.btnIngresar)
-        autoUbicacion = findViewById(R.id.autoCompleteUbicacion)
-        autoPiso = findViewById(R.id.autoCompleteUbicacion2)
-        edtDescripcion = findViewById(R.id.txtDescripción)
-        progressBarCarga = findViewById(R.id.progressBarCarga)
-        bottomNav = findViewById(R.id.bottomNav)
-
-        //Esto asegura que NO se tiñan los iconos, ya que daba error
-        bottomNav.itemIconTintList = null
-
-        btnImgAgregarFotografias.setOnClickListener {
-            showPhotoPickerDialog()
-        }
-
-        btnIngresar.setOnClickListener {
-            submitTarea()
-        }
-
-        bottomNav.selectedItemId = R.id.nav_crear_tarea
-
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_crear_tarea -> {
-                    // Ya estás aquí, no es necesario hacer nada
-                    true
-                }
-
-                R.id.nav_muro_tareas -> {
-                    startActivity(Intent(this, MurosTareasActivity::class.java))
-                    true
-                }
-
-                R.id.nav_usuario -> {
-                    FirebaseAuth.getInstance().signOut()
-                    val intent = Intent(this, LoginActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                    true
-                }
-
-                else -> false
-            }
-        }
-
-    private fun showPhotoPickerDialog() {
-        val options = arrayOf("Galería", "Cámara")
-        AlertDialog.Builder(this)
-            .setTitle("Seleccionar foto")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> {
-                        // Galería
-                        pickImageLauncher.launch("image/*")
-                    }
-                    1 -> {
-                        // Cámara: revisar/solicitar permiso
-                        val granted = ContextCompat.checkSelfPermission(
-                            this,
-                            Manifest.permission.CAMERA
-                        ) == PackageManager.PERMISSION_GRANTED
-
-                        if (granted) {
-                            takePhotoLauncher.launch(null)
-                        } else {
-                            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                        }
-                    }
-                }
-            }
-            .show()
+        configurarSpinnerPiso()
+        configurarEventos()
     }
 
-    private fun setLoading(isLoading: Boolean) {
-        if (isLoading) {
-            progressBarCarga.visibility = View.VISIBLE
-            btnIngresar.isEnabled = false
-            btnImgAgregarFotografias.isEnabled = false
-        } else {
-            progressBarCarga.visibility = View.GONE
-            btnIngresar.isEnabled = true
-            btnImgAgregarFotografias.isEnabled = true
+    private fun configurarSpinnerPiso() {
+        val pisos = mutableListOf("Selecciona piso")
+        for (piso in 6 downTo -6) {
+            pisos.add(piso.toString())
+        }
+
+        val adapterPisos = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            pisos
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+
+        binding.spPiso.adapter = adapterPisos
+    }
+
+    private fun configurarEventos() {
+        binding.btnImgAgregarFotografias.setOnClickListener {
+            seleccionarImagenLauncher.launch("image/*")
+        }
+
+        binding.btnIngresar.setOnClickListener {
+            crearTarea()
         }
     }
 
-    private fun submitTarea() {
-        val descripcion = edtDescripcion.text.toString().trim()
-        val ubicacion = autoUbicacion.text.toString().trim()
-        val piso = autoPiso.text.toString().trim()
+    private fun crearTarea() {
+        val descripcion = binding.txtDescripcion.text.toString().trim()
+        val ubicacion = binding.autoCompleteUbicacion.text.toString().trim()
+        val pisoSeleccionado = binding.spPiso.selectedItem?.toString() ?: ""
 
-        if (descripcion.isBlank() || ubicacion.isBlank() || piso.isBlank()) {
-            Toast.makeText(this, "Complete todos los campos", Toast.LENGTH_SHORT).show()
+        if (descripcion.isEmpty()) {
+            binding.txtDescripcion.error = "Ingrese una descripción"
             return
         }
 
-        if (imageUri == null) {
-            Toast.makeText(this, "Seleccione una foto", Toast.LENGTH_SHORT).show()
+        if (ubicacion.isEmpty()) {
+            binding.autoCompleteUbicacion.error = "Ingrese una ubicación"
             return
         }
 
-        setLoading(true)
+        if (pisoSeleccionado == "Selecciona piso" || pisoSeleccionado.isEmpty()) {
+            toast("Debe seleccionar un piso")
+            return
+        }
 
-        val storageRef = FirebaseStorage.getInstance().reference
-        val fileRef = storageRef.child("tareas/${UUID.randomUUID()}.jpg")
+        val usuarioActual = auth.currentUser
+        if (usuarioActual == null) {
+            toast("Error: no hay usuario autenticado")
+            return
+        }
 
-        fileRef.putFile(imageUri!!)
-            .addOnSuccessListener {
-                fileRef.downloadUrl
-                    .addOnSuccessListener { uri ->
-                        val imagenUrl = uri.toString()
-                        guardarTareaEnFirestore(descripcion, ubicacion, piso, imagenUrl)
+        mostrarCargando(true)
+
+        val coleccion = firestore.collection("tareas")
+        val nuevoDoc = coleccion.document()
+        val tareaId = nuevoDoc.id
+
+        // Si hay imagen, primero la subimos
+        imagenUri?.let { uri ->
+            val referenciaImagen = storage.reference
+                .child("tareas")
+                .child("antes")
+                .child("$tareaId.jpg")
+
+            referenciaImagen.putFile(uri)
+                .continueWithTask { task ->
+                    if (!task.isSuccessful) {
+                        task.exception?.let { throw it }
                     }
-                    .addOnFailureListener { e ->
-                        setLoading(false)
-                        Toast.makeText(
-                            this,
-                            "Error al obtener URL de imagen: ${e.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-            }
-            .addOnFailureListener { e ->
-                setLoading(false)
-                Toast.makeText(
-                    this,
-                    "Error al subir imagen: ${e.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+                    referenciaImagen.downloadUrl
+                }
+                .addOnSuccessListener { downloadUri ->
+                    val fotoAntesUrl = downloadUri.toString()
+                    guardarTareaEnFirestore(
+                        docRef = nuevoDoc,
+                        tareaId = tareaId,
+                        descripcion = descripcion,
+                        ubicacion = ubicacion,
+                        piso = pisoSeleccionado,
+                        fotoAntesUrl = fotoAntesUrl,
+                        creador = usuarioActual.email ?: usuarioActual.uid
+                    )
+                }
+                .addOnFailureListener { e ->
+                    mostrarCargando(false)
+                    toast("Error al subir la imagen: ${e.message}")
+                }
+        } ?: run {
+            // Sin imagen, igual guardamos la tarea
+            guardarTareaEnFirestore(
+                docRef = nuevoDoc,
+                tareaId = tareaId,
+                descripcion = descripcion,
+                ubicacion = ubicacion,
+                piso = pisoSeleccionado,
+                fotoAntesUrl = "",
+                creador = usuarioActual.email ?: usuarioActual.uid
+            )
+        }
     }
 
     private fun guardarTareaEnFirestore(
+        docRef: com.google.firebase.firestore.DocumentReference,
+        tareaId: String,
         descripcion: String,
         ubicacion: String,
         piso: String,
-        imagenUrl: String
+        fotoAntesUrl: String,
+        creador: String
     ) {
-        val tareaData = hashMapOf(
-            "descripcion" to descripcion,
-            "ubicacion" to ubicacion,
-            "piso" to piso,
-            "imagenUrl" to imagenUrl,
-            "estado" to "Pendiente",
-            "fechaCreacion" to Timestamp.now()
+        val tarea = Tarea(
+            id = tareaId,
+            descripcion = descripcion,
+            ubicacion = ubicacion,
+            piso = piso,
+            fotoAntesUrl = fotoAntesUrl,
+            fotoDespuesUrl = "",
+            estado = "Pendiente",
+            fechaCreacion = Timestamp.now(),
+            fechaRespuesta = null,
+            creadaPor = creador,
+            asignadaA = "",
+            comentarioRespuesta = ""
         )
 
-        db.collection("tareas")
-            .add(tareaData)
+        docRef.set(tarea)
             .addOnSuccessListener {
-                setLoading(false)
-                Toast.makeText(this, "Tarea creada exitosamente", Toast.LENGTH_SHORT).show()
-                val intent = Intent(this, MurosTareasActivity::class.java)
-                startActivity(intent)
-                finish()
+                mostrarCargando(false)
+                mostrarDialogoDespuesDeCrear()
             }
             .addOnFailureListener { e ->
-                setLoading(false)
-                Toast.makeText(
-                    this,
-                    "Error al guardar tarea: ${e.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                mostrarCargando(false)
+                toast("Error al guardar la tarea: ${e.message}")
             }
     }
 
-    private fun saveBitmapToCacheAndGetUri(bitmap: Bitmap): Uri {
-        val cacheFile = File(cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
-        val fos = FileOutputStream(cacheFile)
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
-        fos.flush()
-        fos.close()
+    private fun mostrarDialogoDespuesDeCrear() {
+        AlertDialog.Builder(this)
+            .setTitle("Solicitud ingresada")
+            .setMessage("La solicitud se ha ingresado correctamente.\n\n¿Desea ingresar otro requerimiento?")
+            .setPositiveButton("Sí") { _, _ ->
+                limpiarFormulario()
+            }
+            .setNegativeButton("No") { _, _ ->
+                finish()
+            }
+            .setCancelable(false)
+            .show()
+    }
 
-        val authority = "${packageName}.provider"
-        return FileProvider.getUriForFile(
-            this,
-            authority,
-            cacheFile
-        )
+    private fun limpiarFormulario() {
+        binding.txtDescripcion.setText("")
+        binding.autoCompleteUbicacion.setText("")
+        binding.spPiso.setSelection(0)
+        imagenUri = null
+        binding.btnImgAgregarFotografias.setImageResource(R.drawable.camera_icon)
+    }
+
+    private fun mostrarCargando(mostrar: Boolean) {
+        binding.progressBarCarga.visibility = if (mostrar) View.VISIBLE else View.GONE
+        binding.btnIngresar.isEnabled = !mostrar
+        binding.btnImgAgregarFotografias.isEnabled = !mostrar
+    }
+
+    private fun toast(mensaje: String) {
+        Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
     }
 }

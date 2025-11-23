@@ -8,22 +8,23 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import java.text.SimpleDateFormat
-import java.util.Locale
+import com.google.firebase.Timestamp
 
 class TareaAdapter(
-    private val tareas: List<Tarea>,
+    private var tareas: List<Tarea>,
+    private val rolUsuario: String,
     private val onResponderClick: (Tarea) -> Unit
 ) : RecyclerView.Adapter<TareaAdapter.TareaViewHolder>() {
 
-    class TareaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val imgTarea: ImageView = itemView.findViewById(R.id.imgTarea)            // foto antes
-        val imgRespuesta: ImageView = itemView.findViewById(R.id.imgRespuesta)    // foto después
+    inner class TareaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val imgAntes: ImageView = itemView.findViewById(R.id.imgTarea)
+        val imgDespues: ImageView = itemView.findViewById(R.id.imgRespuesta)
         val tvDescripcion: TextView = itemView.findViewById(R.id.tvDescripcionTarea)
         val tvUbicacion: TextView = itemView.findViewById(R.id.tvUbicacionTarea)
         val tvPiso: TextView = itemView.findViewById(R.id.tvPisoValor)
-        val tvFecha: TextView = itemView.findViewById(R.id.Tarea)
-        val tvEstado: TextView = itemView.findViewById(R.id.tvEstadotarea)
+        val tvFechaCreacion: TextView = itemView.findViewById(R.id.tvFechaCreacion)
+        val tvFechaRespuesta: TextView = itemView.findViewById(R.id.tvFechaRespuesta)
+        val tvEstado: TextView = itemView.findViewById(R.id.tvEstadoTarea)
         val btnResponder: Button = itemView.findViewById(R.id.btnResponderFoto)
     }
 
@@ -33,50 +34,72 @@ class TareaAdapter(
         return TareaViewHolder(view)
     }
 
-    override fun getItemCount(): Int = tareas.size
-
     override fun onBindViewHolder(holder: TareaViewHolder, position: Int) {
         val tarea = tareas[position]
 
         holder.tvDescripcion.text = tarea.descripcion
         holder.tvUbicacion.text = "Ubicación: ${tarea.ubicacion}"
-        holder.tvPiso.text = tarea.piso
+        holder.tvPiso.text = "Piso ${tarea.piso}"
+        holder.tvEstado.text = "Estado: ${tarea.estado}"
 
-        // Fecha creación
-        val fecha = tarea.fechaCreacion?.toDate()
-        holder.tvFecha.text = if (fecha != null) {
-            val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-            "Creada: ${sdf.format(fecha)}"
+        holder.tvFechaCreacion.text = "Creada: ${formatearFecha(tarea.fechaCreacion)}"
+
+        // Fecha respuesta: solo si existe
+        if (tarea.fechaRespuesta != null) {
+            holder.tvFechaRespuesta.visibility = View.VISIBLE
+            holder.tvFechaRespuesta.text = "Realizada: ${formatearFecha(tarea.fechaRespuesta)}"
         } else {
-            "Creada: -"
+            holder.tvFechaRespuesta.visibility = View.GONE
         }
 
-        // Foto ANTES
-        Glide.with(holder.itemView.context)
-            .load(tarea.imagenUrl)
-            .placeholder(R.drawable.camera_icon)
-            .centerCrop()
-            .into(holder.imgTarea)
-
-        // Foto DESPUÉS + estado
-        if (tarea.respuestaUrl.isNotEmpty()) {
-            holder.imgRespuesta.visibility = View.VISIBLE
+        // Imagen ANTES
+        if (tarea.fotoAntesUrl.isNotEmpty()) {
             Glide.with(holder.itemView.context)
-                .load(tarea.respuestaUrl)
-                .placeholder(R.drawable.camera_icon)
-                .centerCrop()
-                .into(holder.imgRespuesta)
-
-            holder.tvEstado.text = "Estado: Completada"
-            holder.btnResponder.visibility = View.GONE   // ya respondida
+                .load(tarea.fotoAntesUrl)
+                .into(holder.imgAntes)
         } else {
-            holder.imgRespuesta.visibility = View.GONE
-            holder.tvEstado.text = "Estado: Pendiente"
-            holder.btnResponder.visibility = View.VISIBLE
+            holder.imgAntes.setImageResource(R.drawable.camera_icon)
         }
 
-        holder.btnResponder.setOnClickListener {
-            onResponderClick(tarea)
+        // Imagen DESPUÉS
+        if (tarea.fotoDespuesUrl.isNotEmpty()) {
+            holder.imgDespues.visibility = View.VISIBLE
+            Glide.with(holder.itemView.context)
+                .load(tarea.fotoDespuesUrl)
+                .into(holder.imgDespues)
+        } else {
+            holder.imgDespues.visibility = View.GONE
         }
+
+        // Botón responder:
+        // - Solo visible si la tarea está Pendiente
+        // - Para ADMIN y REALIZAR
+        val esPendiente = tarea.estado == "Pendiente"
+        val puedeResponder = rolUsuario == LoginActivity.ROL_ADMIN ||
+                rolUsuario == LoginActivity.ROL_REALIZAR
+
+        if (esPendiente && puedeResponder) {
+            holder.btnResponder.visibility = View.VISIBLE
+            holder.btnResponder.setOnClickListener {
+                onResponderClick(tarea)
+            }
+        } else {
+            holder.btnResponder.visibility = View.GONE
+            holder.btnResponder.setOnClickListener(null)
+        }
+    }
+
+    override fun getItemCount(): Int = tareas.size
+
+    fun actualizarLista(nuevaLista: List<Tarea>) {
+        tareas = nuevaLista
+        notifyDataSetChanged()
+    }
+
+    private fun formatearFecha(timestamp: Timestamp?): String {
+        if (timestamp == null) return "-"
+        val date = timestamp.toDate()
+        val formato = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+        return formato.format(date)
     }
 }
