@@ -8,7 +8,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.google.firebase.Timestamp
 
 class TareaAdapter(
     private var tareas: List<Tarea>,
@@ -17,15 +16,18 @@ class TareaAdapter(
 ) : RecyclerView.Adapter<TareaAdapter.TareaViewHolder>() {
 
     inner class TareaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val imgAntes: ImageView = itemView.findViewById(R.id.imgTarea)
-        val imgDespues: ImageView = itemView.findViewById(R.id.imgRespuesta)
-        val tvDescripcion: TextView = itemView.findViewById(R.id.tvDescripcionTarea)
-        val tvUbicacion: TextView = itemView.findViewById(R.id.tvUbicacionTarea)
-        val tvPiso: TextView = itemView.findViewById(R.id.tvPisoValor)
+        val imgTarea: ImageView = itemView.findViewById(R.id.imgTarea)
+        val imgRespuesta: ImageView = itemView.findViewById(R.id.imgRespuesta)
+
+        val tvDescripcionTarea: TextView = itemView.findViewById(R.id.tvDescripcionTarea)
+        val tvUbicacionTarea: TextView = itemView.findViewById(R.id.tvUbicacionTarea)
+        val tvPisoValor: TextView = itemView.findViewById(R.id.tvPisoValor)
         val tvFechaCreacion: TextView = itemView.findViewById(R.id.tvFechaCreacion)
         val tvFechaRespuesta: TextView = itemView.findViewById(R.id.tvFechaRespuesta)
-        val tvEstado: TextView = itemView.findViewById(R.id.tvEstadoTarea)
-        val btnResponder: Button = itemView.findViewById(R.id.btnResponderFoto)
+        val tvEstadoTarea: TextView = itemView.findViewById(R.id.tvEstadoTarea)
+        val tvAsignadaA: TextView = itemView.findViewById(R.id.tvAsignadaA)
+
+        val btnResponderFoto: Button = itemView.findViewById(R.id.btnResponderFoto)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TareaViewHolder {
@@ -34,72 +36,60 @@ class TareaAdapter(
         return TareaViewHolder(view)
     }
 
+    override fun getItemCount(): Int = tareas.size
+
     override fun onBindViewHolder(holder: TareaViewHolder, position: Int) {
         val tarea = tareas[position]
 
-        holder.tvDescripcion.text = tarea.descripcion
-        holder.tvUbicacion.text = "Ubicación: ${tarea.ubicacion}"
-        holder.tvPiso.text = "Piso ${tarea.piso}"
-        holder.tvEstado.text = "Estado: ${tarea.estado}"
+        // Texto básico
+        holder.tvDescripcionTarea.text = tarea.descripcion
+        holder.tvUbicacionTarea.text = "Ubicación: ${tarea.ubicacion}"
+        holder.tvPisoValor.text = tarea.piso
 
-        holder.tvFechaCreacion.text = "Creada: ${formatearFecha(tarea.fechaCreacion)}"
+        // Fechas
+        holder.tvFechaCreacion.text =
+            tarea.fechaCreacion?.toDate()?.let { "Creada: $it" } ?: ""
 
-        // Fecha respuesta: solo si existe
-        if (tarea.fechaRespuesta != null) {
-            holder.tvFechaRespuesta.visibility = View.VISIBLE
-            holder.tvFechaRespuesta.text = "Realizada: ${formatearFecha(tarea.fechaRespuesta)}"
+        holder.tvFechaRespuesta.text =
+            tarea.fechaRespuesta?.toDate()?.let { "Realizada: $it" } ?: ""
+
+        // Estado
+        holder.tvEstadoTarea.text = "Estado: ${tarea.estado}"
+
+        // Supervisor asignado
+        holder.tvAsignadaA.text = if (tarea.asignadaA.isBlank()) {
+            "Asignada a: -"
         } else {
-            holder.tvFechaRespuesta.visibility = View.GONE
+            "Asignada a: ${tarea.asignadaA}"
         }
 
         // Imagen ANTES
-        if (tarea.fotoAntesUrl.isNotEmpty()) {
+        if (tarea.fotoAntesUrl.isNotBlank()) {
             Glide.with(holder.itemView.context)
                 .load(tarea.fotoAntesUrl)
-                .into(holder.imgAntes)
+                .into(holder.imgTarea)
         } else {
-            holder.imgAntes.setImageResource(R.drawable.camera_icon)
+            holder.imgTarea.setImageResource(R.drawable.camera_icon)
         }
 
         // Imagen DESPUÉS
-        if (tarea.fotoDespuesUrl.isNotEmpty()) {
-            holder.imgDespues.visibility = View.VISIBLE
+        if (tarea.fotoDespuesUrl.isNotBlank()) {
+            holder.imgRespuesta.visibility = View.VISIBLE
             Glide.with(holder.itemView.context)
                 .load(tarea.fotoDespuesUrl)
-                .into(holder.imgDespues)
+                .into(holder.imgRespuesta)
         } else {
-            holder.imgDespues.visibility = View.GONE
+            holder.imgRespuesta.visibility = View.GONE
         }
 
-        // Botón responder:
-        // - Solo visible si la tarea está Pendiente
-        // - Para ADMIN y REALIZAR
-        val esPendiente = tarea.estado == "Pendiente"
-        val puedeResponder = rolUsuario == LoginActivity.ROL_ADMIN ||
-                rolUsuario == LoginActivity.ROL_REALIZAR
-
-        if (esPendiente && puedeResponder) {
-            holder.btnResponder.visibility = View.VISIBLE
-            holder.btnResponder.setOnClickListener {
-                onResponderClick(tarea)
-            }
-        } else {
-            holder.btnResponder.visibility = View.GONE
-            holder.btnResponder.setOnClickListener(null)
+        // Botón responder
+        holder.btnResponderFoto.setOnClickListener {
+            onResponderClick(tarea)
         }
     }
-
-    override fun getItemCount(): Int = tareas.size
 
     fun actualizarLista(nuevaLista: List<Tarea>) {
         tareas = nuevaLista
         notifyDataSetChanged()
-    }
-
-    private fun formatearFecha(timestamp: Timestamp?): String {
-        if (timestamp == null) return "-"
-        val date = timestamp.toDate()
-        val formato = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
-        return formato.format(date)
     }
 }

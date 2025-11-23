@@ -27,13 +27,11 @@ class LoginActivity : AppCompatActivity() {
 
         configurarEventos()
     }
-
     private fun configurarEventos() {
         binding.btnIngresar.setOnClickListener {
             hacerLogin()
         }
     }
-
     private fun hacerLogin() {
         val usuarioIngresado = binding.etCorreo.text.toString().trim()
         val contrasenaIngresada = binding.etContrasena.text.toString().trim()
@@ -50,7 +48,9 @@ class LoginActivity : AppCompatActivity() {
                 ROL_CREAR
             }
 
-            usuarioIngresado.equals("administrador", ignoreCase = true) &&
+            // 👇 AQUÍ: admin puede ser "administrador" o "administrador@miapp.com"
+            (usuarioIngresado.equals("administrador", ignoreCase = true) ||
+                    usuarioIngresado.equals("administrador@miapp.com", ignoreCase = true)) &&
                     contrasenaIngresada == "Administrador02" -> {
                 ROL_ADMIN
             }
@@ -60,8 +60,8 @@ class LoginActivity : AppCompatActivity() {
                 ROL_REALIZAR
             }
 
-            // Supervisores u otros usuarios → los tratamos como ROL_REALIZAR
             else -> {
+                // Supervisores u otros → ROL_REALIZAR
                 ROL_REALIZAR
             }
         }
@@ -75,6 +75,7 @@ class LoginActivity : AppCompatActivity() {
             ROL_REALIZAR -> irAMuroTareas(usuarioIngresado, rol, esAdmin)
         }
     }
+
 
     private fun irACrearTarea(username: String, rol: String, esAdmin: Boolean) {
         val intent = Intent(this, CrearTareaActivity::class.java).apply {

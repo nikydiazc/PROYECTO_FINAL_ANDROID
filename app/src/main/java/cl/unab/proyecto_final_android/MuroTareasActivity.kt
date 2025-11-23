@@ -2,10 +2,13 @@ package cl.unab.proyecto_final_android
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.Toast
 import android.widget.Button
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -22,48 +25,46 @@ class MuroTareasActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMuroTareasBinding
     private lateinit var firestore: FirebaseFirestore
+    private lateinit var adapter: TareaAdapter
+    private var listenerTareas: ListenerRegistration? = null
+
+    // rol y usuario actual
+    private var rolUsuario: String = LoginActivity.ROL_REALIZAR
     private var usernameActual: String = ""
 
-    private lateinit var adapter: TareaAdapter
+    // es admin si el username es "administrador" o "administrador@miapp.com"
+    private val esAdmin: Boolean
+        get() = usernameActual.equals("administrador", ignoreCase = true) ||
+                usernameActual.equals("administrador@miapp.com", ignoreCase = true)
 
-    private var rolUsuario: String = LoginActivity.ROL_REALIZAR
-
-    // Estado actual del muro: "Pendiente" o "Realizada"
-    private var estadoActual: String = "Pendiente"
-    private var modoMuro: String = "PENDIENTES"
-
-    // Listas para filtros
+    // listas de tareas
     private val listaOriginal = mutableListOf<Tarea>()
     private val listaFiltrada = mutableListOf<Tarea>()
 
-    // Filtro de texto (busca en descripción o ubicación)
-    private var textoFiltro: String = ""
+    // modo del muro: PENDIENTES / REALIZADAS / ASIGNADAS
+    private var modoMuro: String = "PENDIENTES"
 
-    // Filtro por piso
-    private var pisoFiltro: String = "Todos"
+    // filtros
+    private var textoBusqueda: String = ""
+    private var pisoSeleccionado: String = "Todos"
+    private var filtroSupervisor: String? = null
 
-    private var listenerTareas: ListenerRegistration? = null
-
-    // Lista de supervisores disponibles para asignar tareas
-    private data class SupervisorUsuario(
-        val nombre: String,
-        val username: String,
-        val zona: String
+    data class SupervisorUsuario(
+        val nombreVisible: String,
+        val username: String
     )
 
-    private val supervisores = listOf(
-        // Poniente
-        SupervisorUsuario("Delfina Cabello", "delfina.cabello", "Poniente"),
-        SupervisorUsuario("Rodrigo Reyes", "rodrigo.reyes", "Poniente"),
-        SupervisorUsuario("Maria Caruajulca", "maria.caruajulca", "Poniente"),
-        SupervisorUsuario("Cristian Vergara", "cristian.vergara", "Poniente"),
-        SupervisorUsuario("Enrique Mendez", "enrique.mendez", "Poniente"),
-        SupervisorUsuario("Norma Marican", "norma.marican", "Poniente"),
-
-        // Oriente
-        SupervisorUsuario("John Vilchez", "john.vilchez", "Oriente"),
-        SupervisorUsuario("Libia Florez", "libia.florez", "Oriente"),
-        SupervisorUsuario("Jorge Geisbuhler", "jorge.geisbuhler", "Oriente")
+    // supervisores (ajusta username según lo que guardes en Firestore en asignadaA)
+    private val listaSupervisores = listOf(
+        SupervisorUsuario("Delfina Cabello (Poniente)", "delfina.cabello"),
+        SupervisorUsuario("Rodrigo Reyes (Poniente)", "rodrigo.reyes"),
+        SupervisorUsuario("Maria Caruajulca (Poniente)", "maria.caruajulca"),
+        SupervisorUsuario("Cristian Vergara (Poniente)", "cristian.vergara"),
+        SupervisorUsuario("Enrique Mendez (Poniente)", "enrique.mendez"),
+        SupervisorUsuario("Norma Marican (Poniente)", "norma.marican"),
+        SupervisorUsuario("John Vilchez (Oriente)", "john.vilchez"),
+        SupervisorUsuario("Libia Florez (Oriente)", "libia.florez"),
+        SupervisorUsuario("Jorge Geisbuhler (Oriente)", "jorge.geisbuhler")
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,16 +76,14 @@ class MuroTareasActivity : AppCompatActivity() {
 
         rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
             ?: LoginActivity.ROL_REALIZAR
-
         usernameActual = intent.getStringExtra(LoginActivity.EXTRA_USERNAME) ?: ""
-
-        Toast.makeText(this, "Rol: $rolUsuario - User: $usernameActual", Toast.LENGTH_LONG).show()
 
         configurarRecyclerView()
         configurarSpinnerPiso()
+        configurarSpinnerSupervisor()
         configurarEventos()
-        configurarSwipeConRol()
         configurarBottomNav()
+        configurarSwipeConRol()
         cargarTareasDesdeFirestore()
     }
 
@@ -93,25 +92,24 @@ class MuroTareasActivity : AppCompatActivity() {
         listenerTareas?.remove()
     }
 
+    // -------------------- UI BÁSICA --------------------
+
     private fun configurarRecyclerView() {
         adapter = TareaAdapter(
             tareas = listaFiltrada,
             rolUsuario = rolUsuario,
             onResponderClick = { tarea ->
-                // Solo tiene sentido en pendientes
                 if (tarea.estado != "Pendiente") {
                     Toast.makeText(
                         this,
                         "Solo se pueden marcar como realizadas las tareas pendientes",
                         Toast.LENGTH_SHORT
                     ).show()
-                    return@TareaAdapter
+                } else {
+                    mostrarDialogoMarcarRealizada(tarea)
                 }
-
-                mostrarDialogoMarcarRealizada(tarea)
             }
         )
-
 
         binding.rvTareas.apply {
             layoutManager = LinearLayoutManager(this@MuroTareasActivity)
@@ -119,75 +117,154 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
-    private fun configurarBottomNav() {
-        val bottomNav = binding.bottomNav
-
-        // marcar como seleccionada la opción del muro
-        bottomNav.selectedItemId = R.id.nav_muro_tareas  // AJUSTA este id según tu menú
-
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_crear_tarea -> {
-                    // Si ya estamos en muro, vamos a CrearTareaActivity
-                    startActivity(
-                        Intent(this, CrearTareaActivity::class.java).apply {
-                            putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
-                        }
-                    )
-                    // Opcional: finish() si no quieres volver con back
-                    true
-                }
-
-                R.id.nav_muro_tareas -> {
-                    // Ya estamos aquí
-                    true
-                }
-
-                else -> false
-            }
-        }
-    }
-
-
     private fun configurarSpinnerPiso() {
         val pisos = mutableListOf("Todos")
-        for (piso in 6 downTo -6) {
-            pisos.add(piso.toString())
-        }
+        for (i in 6 downTo 1) pisos.add("Piso $i")
+        pisos.add("Piso 0")
+        for (i in -1 downTo -6) pisos.add("Piso $i")
 
-        val adapterPisos = ArrayAdapter(
+        val adapterPiso = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
             pisos
-        ).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        )
+        adapterPiso.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spFiltroPiso.adapter = adapterPiso
+
+        binding.spFiltroPiso.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    pisoSeleccionado = parent?.getItemAtPosition(position).toString()
+                    aplicarFiltrosLocales()
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+    }
+
+    private fun configurarSpinnerSupervisor() {
+        if (!esAdmin) {
+            binding.spFiltroSupervisor.visibility = View.GONE
+            return
         }
 
-        binding.spFiltroPiso.adapter = adapterPisos
+        val nombres = mutableListOf("Todos")
+        nombres.addAll(listaSupervisores.map { it.nombreVisible })
+
+        val adapterSup = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            nombres
+        )
+        adapterSup.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spFiltroSupervisor.adapter = adapterSup
+
+        binding.spFiltroSupervisor.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    if (!esAdmin || modoMuro != "ASIGNADAS") return
+
+                    filtroSupervisor = if (position == 0) {
+                        null
+                    } else {
+                        val supervisorSeleccionado = listaSupervisores[position - 1]
+                        supervisorSeleccionado.username
+                    }
+                    cargarTareasDesdeFirestore()
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
     }
 
     private fun configurarEventos() {
 
         binding.btnTareasPendientes.setOnClickListener {
             modoMuro = "PENDIENTES"
-            cargarTareasDesdeFirestore()
+            filtroSupervisor = null
+            binding.spFiltroSupervisor.visibility = View.GONE
             marcarBotonActivo(binding.btnTareasPendientes)
+            cargarTareasDesdeFirestore()
         }
 
         binding.btnTareasRealizadas.setOnClickListener {
             modoMuro = "REALIZADAS"
-            cargarTareasDesdeFirestore()
+            filtroSupervisor = null
+            binding.spFiltroSupervisor.visibility = View.GONE
             marcarBotonActivo(binding.btnTareasRealizadas)
+            cargarTareasDesdeFirestore()
         }
 
         binding.btnTareasAsignadas.setOnClickListener {
             modoMuro = "ASIGNADAS"
-            cargarTareasDesdeFirestore()
             marcarBotonActivo(binding.btnTareasAsignadas)
+
+            if (esAdmin) {
+                binding.spFiltroSupervisor.visibility = View.VISIBLE
+                cargarTareasDesdeFirestore()
+            } else {
+                binding.spFiltroSupervisor.visibility = View.GONE
+                filtroSupervisor = null
+                cargarTareasDesdeFirestore()
+            }
+        }
+
+        binding.etBuscarDescripcionOUbicacion.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(
+                s: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int
+            ) {}
+
+            override fun onTextChanged(
+                s: CharSequence?,
+                start: Int,
+                before: Int,
+                count: Int
+            ) {
+                textoBusqueda = s?.toString()?.trim().orEmpty()
+                aplicarFiltrosLocales()
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
+    }
+
+    private fun configurarBottomNav() {
+        val bottomNav = binding.bottomNav
+
+        bottomNav.selectedItemId = R.id.nav_muro_tareas
+
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_crear_tarea -> {
+                    startActivity(
+                        Intent(this, CrearTareaActivity::class.java).apply {
+                            putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
+                            putExtra(LoginActivity.EXTRA_USERNAME, usernameActual)
+                        }
+                    )
+                    true
+                }
+
+                R.id.nav_muro_tareas -> true
+
+                else -> false
+            }
         }
     }
 
-    //Se marca el botón activo: PENDIENTES, REALIZADAS O ASIGNADAS
     private fun marcarBotonActivo(botonActivo: Button) {
         val botones = listOf(
             binding.btnTareasPendientes,
@@ -197,14 +274,133 @@ class MuroTareasActivity : AppCompatActivity() {
 
         botones.forEach { btn ->
             if (btn == botonActivo) {
-                btn.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.verde))
+                btn.backgroundTintList =
+                    ContextCompat.getColorStateList(this, R.color.verde)
                 btn.setTextColor(ContextCompat.getColor(this, R.color.white))
             } else {
-                btn.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white))
+                btn.backgroundTintList =
+                    ContextCompat.getColorStateList(this, R.color.white)
                 btn.setTextColor(ContextCompat.getColor(this, R.color.black))
             }
         }
     }
+
+    private fun mostrarCargando(mostrar: Boolean) {
+        binding.progressBarMuro.visibility = if (mostrar) View.VISIBLE else View.GONE
+        binding.rvTareas.isEnabled = !mostrar
+        binding.btnTareasPendientes.isEnabled = !mostrar
+        binding.btnTareasRealizadas.isEnabled = !mostrar
+        binding.btnTareasAsignadas.isEnabled = !mostrar
+    }
+
+    // -------------------- FIRESTORE --------------------
+    private fun cargarTareasDesdeFirestore() {
+        listenerTareas?.remove()
+        mostrarCargando(true)
+
+        val coleccion = firestore.collection("tareas")
+
+        val query: Query = when (modoMuro) {
+            "PENDIENTES" -> {
+                // Pendientes sin asignar
+                coleccion
+                    .whereEqualTo("estado", "Pendiente")
+                    .whereEqualTo("asignadaA", "")
+            }
+
+            "REALIZADAS" -> {
+                coleccion.whereEqualTo("estado", "Realizada")
+            }
+
+            "ASIGNADAS" -> {
+                if (esAdmin) {
+                    // Admin: ve pendientes asignadas (filtramos por asignadaA más abajo)
+                    coleccion.whereEqualTo("estado", "Pendiente")
+                } else {
+                    // Supervisor: pendientes asignadas a él
+                    coleccion
+                        .whereEqualTo("estado", "Pendiente")
+                        .whereEqualTo("asignadaA", usernameActual)
+                }
+            }
+
+            else -> coleccion
+        }
+
+        listenerTareas = query.addSnapshotListener { snapshot, error ->
+            mostrarCargando(false)
+
+            if (error != null) {
+                Toast.makeText(
+                    this,
+                    "Error al cargar tareas: ${error.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@addSnapshotListener
+            }
+
+            listaOriginal.clear()
+
+            val docs = snapshot?.documents ?: emptyList()
+            for (doc in docs) {
+                val tarea = doc.toObject(Tarea::class.java)?.copy(id = doc.id) ?: continue
+
+                val pasaFiltroAsignadas = when (modoMuro) {
+                    "ASIGNADAS" -> {
+                        if (esAdmin) {
+                            // Admin: solo con asignadaA no vacío + filtro opcional
+                            if (tarea.asignadaA.isBlank()) {
+                                false
+                            } else if (filtroSupervisor.isNullOrEmpty()) {
+                                true
+                            } else {
+                                tarea.asignadaA == filtroSupervisor
+                            }
+                        } else {
+                            // supervisor ya viene filtrado por query
+                            true
+                        }
+                    }
+
+                    else -> true
+                }
+
+                if (pasaFiltroAsignadas) {
+                    listaOriginal.add(tarea)
+                }
+            }
+
+            aplicarFiltrosLocales()
+        }
+    }
+
+    // -------------------- FILTROS LOCALES --------------------
+
+    private fun aplicarFiltrosLocales() {
+        listaFiltrada.clear()
+
+        val texto = textoBusqueda.lowercase()
+
+        listaFiltrada.addAll(
+            listaOriginal.filter { tarea ->
+                val coincideTexto =
+                    texto.isBlank() ||
+                            tarea.descripcion.lowercase().contains(texto) ||
+                            tarea.ubicacion.lowercase().contains(texto)
+
+                val coincidePiso =
+                    pisoSeleccionado == "Todos" ||
+                            tarea.piso.equals(pisoSeleccionado, ignoreCase = true)
+
+                coincideTexto && coincidePiso
+            }
+        )
+
+        adapter.actualizarLista(listaFiltrada.toList())
+    }
+
+    // -------------------- SWIPE: ELIMINAR / ASIGNAR --------------------
+
     private fun configurarSwipeConRol() {
         val callback = object : ItemTouchHelper.SimpleCallback(
             0,
@@ -222,13 +418,23 @@ class MuroTareasActivity : AppCompatActivity() {
 
                 val tarea = listaFiltrada.getOrNull(position) ?: return
 
+                // solo admin puede eliminar/asignar
+                if (!esAdmin) {
+                    Toast.makeText(
+                        this@MuroTareasActivity,
+                        "Solo el administrador puede asignar o eliminar tareas",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    adapter.notifyItemChanged(position)
+                    return
+                }
+
                 when (direction) {
                     ItemTouchHelper.LEFT -> {
-                        // 👈 Eliminar con confirmación
                         confirmarRechazoTarea(tarea, position)
                     }
+
                     ItemTouchHelper.RIGHT -> {
-                        // 👉 Asignar a supervisor
                         mostrarDialogoAsignarSupervisor(tarea)
                         adapter.notifyItemChanged(position)
                     }
@@ -239,85 +445,21 @@ class MuroTareasActivity : AppCompatActivity() {
         ItemTouchHelper(callback).attachToRecyclerView(binding.rvTareas)
     }
 
-
-
     private fun confirmarRechazoTarea(tarea: Tarea, position: Int) {
         AlertDialog.Builder(this)
             .setTitle("Eliminar tarea")
             .setMessage("¿Estás seguro de que deseas eliminar esta solicitud de limpieza?\n\nEsta acción no se puede deshacer.")
             .setPositiveButton("Sí, eliminar") { _, _ ->
                 rechazarTarea(tarea)
-                // no hacemos notifyItemChanged aquí porque la eliminamos en la lista
             }
             .setNegativeButton("Cancelar") { dialog, _ ->
                 dialog.dismiss()
-                adapter.notifyItemChanged(position) // devolvemos la tarjeta a su lugar
+                adapter.notifyItemChanged(position)
             }
             .setOnCancelListener {
                 adapter.notifyItemChanged(position)
             }
             .show()
-    }
-
-
-    private fun mostrarDialogoMarcarRealizada(tarea: Tarea) {
-        AlertDialog.Builder(this)
-            .setTitle("Marcar tarea como realizada")
-            .setMessage("¿Confirmas que esta solicitud de limpieza fue atendida correctamente?")
-            .setPositiveButton("Sí, marcar como realizada") { _, _ ->
-                marcarTareaComoRealizada(tarea)
-            }
-            .setNegativeButton("Cancelar") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .show()
-    }
-
-
-
-    private fun mostrarDialogoAsignarSupervisor(tarea: Tarea) {
-        if (tarea.id.isEmpty()) return
-
-        val nombres = supervisores.map { "${it.nombre} (${it.zona})" }.toTypedArray()
-
-        AlertDialog.Builder(this)
-            .setTitle("Asignar tarea a supervisor")
-            .setItems(nombres) { _, which ->
-                val supervisorSeleccionado = supervisores[which]
-                asignarTareaASupervisor(tarea, supervisorSeleccionado)
-            }
-            .setNegativeButton("Cancelar") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .show()
-    }
-
-    private fun asignarTareaASupervisor(tarea: Tarea, supervisor: SupervisorUsuario) {
-        if (tarea.id.isEmpty()) return
-
-        mostrarCargando(true)
-
-        val docRef = firestore.collection("tareas").document(tarea.id)
-        docRef.update(
-            mapOf(
-                "asignadaA" to supervisor.username,
-                "estado" to "Pendiente" // o "En Proceso" si decides cambiarlo más adelante
-            )
-        ).addOnSuccessListener {
-            Toast.makeText(
-                this,
-                "Tarea asignada a ${supervisor.nombre}",
-                Toast.LENGTH_SHORT
-            ).show()
-            mostrarCargando(false)
-        }.addOnFailureListener { e ->
-            mostrarCargando(false)
-            Toast.makeText(
-                this,
-                "Error al asignar: ${e.message}",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
     }
 
     private fun rechazarTarea(tarea: Tarea) {
@@ -330,7 +472,6 @@ class MuroTareasActivity : AppCompatActivity() {
             .addOnSuccessListener {
                 Toast.makeText(this, "Tarea eliminada", Toast.LENGTH_SHORT).show()
 
-                // Sacar de las listas locales para que desaparezca
                 listaOriginal.removeAll { it.id == tarea.id }
                 listaFiltrada.removeAll { it.id == tarea.id }
                 adapter.actualizarLista(listaFiltrada.toList())
@@ -347,6 +488,59 @@ class MuroTareasActivity : AppCompatActivity() {
             }
     }
 
+    private fun mostrarDialogoAsignarSupervisor(tarea: Tarea) {
+        val nombres = listaSupervisores.map { it.nombreVisible }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Asignar tarea a supervisor")
+            .setItems(nombres) { dialog, which ->
+                val supervisorSeleccionado = listaSupervisores[which]
+                asignarTareaASupervisor(tarea, supervisorSeleccionado)
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun asignarTareaASupervisor(tarea: Tarea, supervisor: SupervisorUsuario) {
+        if (tarea.id.isEmpty()) return
+
+        mostrarCargando(true)
+
+        val docRef = firestore.collection("tareas").document(tarea.id)
+        docRef.update(
+            mapOf(
+                "asignadaA" to supervisor.username,
+                "estado" to "Pendiente"
+            )
+        ).addOnSuccessListener {
+            Toast.makeText(
+                this,
+                "Tarea asignada a ${supervisor.nombreVisible}",
+                Toast.LENGTH_SHORT
+            ).show()
+            mostrarCargando(false)
+        }.addOnFailureListener { e ->
+            mostrarCargando(false)
+            Toast.makeText(
+                this,
+                "Error al asignar: ${e.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    // -------------------- MARCAR COMO REALIZADA --------------------
+
+    private fun mostrarDialogoMarcarRealizada(tarea: Tarea) {
+        AlertDialog.Builder(this)
+            .setTitle("Marcar tarea como realizada")
+            .setMessage("¿Confirmas que esta solicitud de limpieza fue atendida correctamente?")
+            .setPositiveButton("Sí, marcar como realizada") { _, _ ->
+                marcarTareaComoRealizada(tarea)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
 
     private fun marcarTareaComoRealizada(tarea: Tarea) {
         if (tarea.id.isEmpty()) return
@@ -354,7 +548,6 @@ class MuroTareasActivity : AppCompatActivity() {
         mostrarCargando(true)
 
         val docRef = firestore.collection("tareas").document(tarea.id)
-
         docRef.update(
             mapOf(
                 "estado" to "Realizada",
@@ -363,7 +556,7 @@ class MuroTareasActivity : AppCompatActivity() {
         ).addOnSuccessListener {
             Toast.makeText(this, "Tarea marcada como realizada", Toast.LENGTH_SHORT).show()
 
-            if (estadoActual == "Pendiente") {
+            if (modoMuro == "PENDIENTES") {
                 listaOriginal.removeAll { it.id == tarea.id }
                 listaFiltrada.removeAll { it.id == tarea.id }
                 adapter.actualizarLista(listaFiltrada.toList())
@@ -379,97 +572,4 @@ class MuroTareasActivity : AppCompatActivity() {
             ).show()
         }
     }
-
-    private fun cargarTareasDesdeFirestore() {
-        // cortar listener anterior si existía
-        listenerTareas?.remove()
-
-        mostrarCargando(true)
-
-        val coleccion = firestore.collection("tareas")
-
-        // 1) armamos el Query según el modo del muro
-        val query: Query = when (modoMuro) {
-            "PENDIENTES" -> {
-                coleccion.whereEqualTo("estado", "Pendiente")
-            }
-            "REALIZADAS" -> {
-                coleccion.whereEqualTo("estado", "Realizada")
-            }
-            "ASIGNADAS" -> {
-                // ADMIN ve todas las tareas asignadas (asignadaA != "")
-                if (rolUsuario == LoginActivity.ROL_ADMIN) {
-                    coleccion.whereNotEqualTo("asignadaA", "")
-                } else {
-                    // supervisores ven solo las suyas
-                    coleccion.whereEqualTo("asignadaA", usernameActual)
-                }
-            }
-            else -> {
-                // por si acaso
-                coleccion
-            }
-        }
-
-        // 2) escuchamos los cambios del query ya armado
-        listenerTareas = query.addSnapshotListener { snapshot, error ->
-            mostrarCargando(false)
-
-            if (error != null) {
-                Toast.makeText(
-                    this,
-                    "Error al cargar tareas: ${error.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-                return@addSnapshotListener
-            }
-
-            val documentos = snapshot?.documents ?: emptyList()
-
-            listaOriginal.clear()
-
-            for (doc in documentos) {
-                val tarea = doc.toObject(Tarea::class.java)?.copy(id = doc.id)
-                if (tarea != null) {
-                    listaOriginal.add(tarea)
-                }
-            }
-
-            aplicarFiltrosLocales()
-        }
-    }
-
-
-    private fun aplicarFiltrosLocales() {
-        val filtroLower = textoFiltro.lowercase()
-
-        val filtradas = listaOriginal.filter { tarea ->
-            val coincideTexto = if (filtroLower.isEmpty()) {
-                true
-            } else {
-                tarea.descripcion.lowercase().contains(filtroLower) ||
-                        tarea.ubicacion.lowercase().contains(filtroLower)
-            }
-
-            val coincidePiso = if (pisoFiltro == "Todos") {
-                true
-            } else {
-                tarea.piso == pisoFiltro
-            }
-
-            coincideTexto && coincidePiso
-        }
-
-        listaFiltrada.clear()
-        listaFiltrada.addAll(filtradas)
-        adapter.actualizarLista(listaFiltrada.toList())
-    }
-
-    private fun mostrarCargando(mostrar: Boolean) {
-        binding.progressBarMuro.visibility = if (mostrar) View.VISIBLE else View.GONE
-        binding.rvTareas.isEnabled = !mostrar
-        binding.btnTareasPendientes.isEnabled = !mostrar
-        binding.btnTareasRealizadas.isEnabled = !mostrar
-    }
-
 }
