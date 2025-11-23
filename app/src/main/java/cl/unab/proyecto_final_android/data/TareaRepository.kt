@@ -164,4 +164,29 @@ class TareaRepository(
             .addOnSuccessListener { onResult(Result.success(Unit)) }
             .addOnFailureListener { e -> onResult(Result.failure(e)) }
     }
+
+    fun actualizarCamposTarea(
+        tareaId: String,
+        nuevaDescripcion: String,
+        nuevaUbicacion: String,
+        nuevoPiso: String,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        val data = mapOf(
+            "descripcion" to nuevaDescripcion,
+            "ubicacion" to nuevaUbicacion,
+            "piso" to nuevoPiso
+        )
+
+        firestore.collection("tareas")
+            .document(tareaId)
+            .update(data)
+            .addOnSuccessListener {
+                onResult(Result.success(Unit))
+            }
+            .addOnFailureListener { e ->
+                onResult(Result.failure(e))
+            }
+    }
+
 }

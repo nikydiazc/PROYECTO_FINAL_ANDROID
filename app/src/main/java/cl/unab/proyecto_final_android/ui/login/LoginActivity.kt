@@ -30,7 +30,7 @@ class LoginActivity : AppCompatActivity() {
         configurarEventos()
     }
     private fun configurarEventos() {
-        binding.btnIngresar.setOnClickListener {
+        binding.btnCrearSolicitud.setOnClickListener {
             hacerLogin()
         }
     }

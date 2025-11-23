@@ -1,6 +1,6 @@
 package cl.unab.proyecto_final_android.ui.muro
 
-import android.R
+import cl.unab.proyecto_final_android.R
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -36,6 +36,9 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.widget.Spinner
+
+
 
 class MuroTareasActivity : AppCompatActivity() {
 
@@ -104,22 +107,46 @@ class MuroTareasActivity : AppCompatActivity() {
     }
 
     // -------------------- CONFIGURACIÓN UI --------------------
-
     private fun configurarRecyclerView() {
         adapter = TareaAdapter(
             tareas = emptyList(),
             rolUsuario = rolUsuario,
             onResponderClick = { tarea ->
-                if (tarea.estado != "Pendiente") {
+                // Admin y Realizar pueden responder (el adapter ya controla visibilidad)
+                if (!tarea.estado.equals("Pendiente", ignoreCase = true)) {
                     Toast.makeText(
                         this,
                         "Solo se pueden responder las tareas pendientes",
                         Toast.LENGTH_SHORT
                     ).show()
-                } else {
-                    tareaSeleccionadaParaRespuesta = tarea
-                    abrirCamaraParaRespuesta()
+                    return@TareaAdapter
                 }
+
+                tareaSeleccionadaParaRespuesta = tarea
+                abrirCamaraParaRespuesta()
+            },
+            onEditarClick = { tarea ->
+                if (!esAdmin) {
+                    Toast.makeText(
+                        this,
+                        "Solo el administrador puede editar tareas",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@TareaAdapter
+                }
+                mostrarDialogoEditarTarea(tarea)
+            },
+            onEliminarClick = { tarea ->
+                if (!esAdmin) {
+                    Toast.makeText(
+                        this,
+                        "Solo el administrador puede eliminar tareas",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@TareaAdapter
+                }
+                // Desde el botón no tenemos posición concreta; usamos null
+                confirmarRechazoTarea(tarea, position = null)
             }
         )
 
@@ -140,10 +167,10 @@ class MuroTareasActivity : AppCompatActivity() {
 
         val adapterPiso = ArrayAdapter(
             this,
-            R.layout.simple_spinner_item,
+            android.R.layout.simple_spinner_item,              // 👈 AQUÍ
             pisos
         )
-        adapterPiso.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
+        adapterPiso.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) // 👈 Y AQUÍ
         binding.spFiltroPiso.adapter = adapterPiso
 
         binding.spFiltroPiso.onItemSelectedListener =
@@ -173,10 +200,10 @@ class MuroTareasActivity : AppCompatActivity() {
 
         val adapterSup = ArrayAdapter(
             this,
-            R.layout.simple_spinner_item,
+            android.R.layout.simple_spinner_item,              // 👈 AQUÍ
             nombres
         )
-        adapterSup.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
+        adapterSup.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) // 👈 Y AQUÍ
         binding.spFiltroSupervisor.adapter = adapterSup
 
         binding.spFiltroSupervisor.onItemSelectedListener =
@@ -201,6 +228,7 @@ class MuroTareasActivity : AppCompatActivity() {
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
             }
     }
+
 
     private fun configurarEventosUI() {
 
@@ -340,16 +368,20 @@ class MuroTareasActivity : AppCompatActivity() {
                         adapter.notifyItemChanged(position)
                     }
                 }
+
             }
         }
 
         ItemTouchHelper(callback).attachToRecyclerView(binding.rvTareas)
     }
 
-    private fun confirmarRechazoTarea(tarea: Tarea, position: Int) {
+    private fun confirmarRechazoTarea(tarea: Tarea, position: Int?) {
         AlertDialog.Builder(this)
             .setTitle("Eliminar tarea")
-            .setMessage("¿Estás seguro de que deseas eliminar esta solicitud de limpieza?\n\nEsta acción no se puede deshacer.")
+            .setMessage(
+                "¿Estás seguro de que deseas eliminar esta solicitud de limpieza?\n\n" +
+                        "Esta acción no se puede deshacer."
+            )
             .setPositiveButton("Sí, eliminar") { _, _ ->
                 viewModel.rechazarTarea(tarea) { ok, error ->
                     if (ok) {
@@ -360,19 +392,22 @@ class MuroTareasActivity : AppCompatActivity() {
                             "Error al eliminar: $error",
                             Toast.LENGTH_SHORT
                         ).show()
-                        adapter.notifyItemChanged(position)
+                        // Si venimos desde el swipe, devolvemos la tarjeta
+                        position?.let { adapter.notifyItemChanged(it) }
                     }
                 }
             }
             .setNegativeButton("Cancelar") { dialog, _ ->
                 dialog.dismiss()
-                adapter.notifyItemChanged(position)
+                // Si venimos desde el swipe, devolvemos la tarjeta
+                position?.let { adapter.notifyItemChanged(it) }
             }
             .setOnCancelListener {
-                adapter.notifyItemChanged(position)
+                position?.let { adapter.notifyItemChanged(it) }
             }
             .show()
     }
+
 
     private fun mostrarDialogoAsignarSupervisor(tarea: Tarea) {
         val nombres = listaSupervisores.map { it.nombreVisible }.toTypedArray()
@@ -496,4 +531,81 @@ class MuroTareasActivity : AppCompatActivity() {
             }
         }
     }
-}
+
+    private fun mostrarDialogoEditarTarea(tarea: Tarea) {
+        val view = layoutInflater.inflate(R.layout.dialog_editar_tarea, null)
+
+        val etDescripcion = view.findViewById<AppCompatEditText>(R.id.etDescripcionEditar)
+        val etUbicacion = view.findViewById<AppCompatEditText>(R.id.etUbicacionEditar)
+        val spPiso = view.findViewById<Spinner>(R.id.spPisoEditar)
+
+        etDescripcion.setText(tarea.descripcion)
+        etUbicacion.setText(tarea.ubicacion)
+
+        // Lista de pisos
+        val pisos = mutableListOf<String>()
+        for (i in 6 downTo 1) {
+            pisos.add("Piso $i")
+        }
+        for (i in -1 downTo -6) {
+            pisos.add("Piso $i")
+        }
+
+        val adapterPiso = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            pisos
+        )
+        adapterPiso.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spPiso.adapter = adapterPiso
+
+        // Seleccionar piso actual si coincide
+        val indexActual = pisos.indexOfFirst { it.equals(tarea.piso, ignoreCase = true) }
+        if (indexActual >= 0) {
+            spPiso.setSelection(indexActual)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Editar tarea")
+            .setView(view)
+            .setPositiveButton("Guardar cambios") { dialog, _ ->
+                val nuevaDescripcion = etDescripcion.text?.toString()?.trim().orEmpty()
+                val nuevaUbicacion = etUbicacion.text?.toString()?.trim().orEmpty()
+                val nuevoPiso = spPiso.selectedItem?.toString().orEmpty()
+
+                if (nuevaDescripcion.isBlank()) {
+                    Toast.makeText(
+                        this,
+                        "La descripción no puede estar vacía",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setPositiveButton
+                }
+
+                viewModel.editarTarea(
+                    tarea,
+                    nuevaDescripcion,
+                    nuevaUbicacion,
+                    nuevoPiso
+                ) { ok, error ->
+                    if (ok) {
+                        Toast.makeText(this, "Tarea actualizada", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "Error al actualizar: $error",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+
+    }

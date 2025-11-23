@@ -151,5 +151,32 @@ class TareasViewModel(
                 .onFailure { e -> onResultado(false, e.message) }
         }
     }
+
+    fun editarTarea(
+        tarea: Tarea,
+        nuevaDescripcion: String,
+        nuevaUbicacion: String,
+        nuevoPiso: String,
+        onResultado: (Boolean, String?) -> Unit
+    ) {
+        if (tarea.id.isEmpty()) {
+            onResultado(false, "ID de tarea vacío")
+            return
+        }
+
+        repository.actualizarCamposTarea(
+            tarea.id,
+            nuevaDescripcion,
+            nuevaUbicacion,
+            nuevoPiso
+        ) { result ->
+            result.onSuccess {
+                onResultado(true, null)
+            }.onFailure { e ->
+                onResultado(false, e.message)
+            }
+        }
+    }
+
 }
 

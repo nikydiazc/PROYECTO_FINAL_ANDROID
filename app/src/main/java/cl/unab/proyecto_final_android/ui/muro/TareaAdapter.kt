@@ -4,21 +4,22 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import cl.unab.proyecto_final_android.ui.login.LoginActivity.Companion.ROL_ADMIN
-import cl.unab.proyecto_final_android.ui.login.LoginActivity.Companion.ROL_CREAR
-import cl.unab.proyecto_final_android.ui.login.LoginActivity.Companion.ROL_REALIZAR
+import cl.unab.proyecto_final_android.ui.login.LoginActivity
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 class TareaAdapter(
     private var tareas: List<Tarea>,
     private val rolUsuario: String,
-    private val onResponderClick: (Tarea) -> Unit
+    private val onResponderClick: (Tarea) -> Unit,
+    private val onEditarClick: (Tarea) -> Unit,
+    private val onEliminarClick: (Tarea) -> Unit
 ) : RecyclerView.Adapter<TareaAdapter.TareaViewHolder>() {
 
     // Mapa username -> nombre visible bonito
@@ -49,6 +50,8 @@ class TareaAdapter(
         val tvAsignadaA: TextView = itemView.findViewById(R.id.tvAsignadaA)
 
         val btnResponderFoto: Button = itemView.findViewById(R.id.btnResponderFoto)
+        val btnEditarTarea: ImageButton = itemView.findViewById(R.id.btnEditarTarea)
+        val btnEliminarTarea: ImageButton = itemView.findViewById(R.id.btnEliminarTarea)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TareaViewHolder {
@@ -67,11 +70,11 @@ class TareaAdapter(
     fun obtenerTareaEnPosicion(position: Int): Tarea? =
         if (position in tareas.indices) tareas[position] else null
 
-    // 👇 ESTA ES LA PARTE QUE ME PEDISTE COMPLETA
     override fun onBindViewHolder(holder: TareaViewHolder, position: Int) {
         val tarea = tareas[position]
+        val context = holder.itemView.context
 
-        // Descripción, ubicación, piso
+        // ---------- Texto base ----------
         holder.tvDescripcion.text = tarea.descripcion.ifBlank { "Sin descripción" }
         holder.tvUbicacion.text = "Ubicación: ${tarea.ubicacion.ifBlank { "-" }}"
         holder.tvPiso.text = tarea.piso.ifBlank { "Piso -" }
@@ -91,14 +94,12 @@ class TareaAdapter(
             holder.tvFechaRespuesta.visibility = View.GONE
         }
 
-        // Estado
+        // Estado (texto + color)
         holder.tvEstado.text = "Estado: ${tarea.estado}"
-
-        // Color de estado (puedes ajustar a tus colores)
-        val context = holder.itemView.context
         val colorEstado = when (tarea.estado.lowercase()) {
             "pendiente" -> ContextCompat.getColor(context, android.R.color.holo_red_dark)
             "realizada" -> ContextCompat.getColor(context, android.R.color.holo_green_dark)
+            "en proceso" -> ContextCompat.getColor(context, android.R.color.holo_orange_dark)
             else -> ContextCompat.getColor(context, android.R.color.white)
         }
         holder.tvEstado.setTextColor(colorEstado)
@@ -112,7 +113,7 @@ class TareaAdapter(
         }
         holder.tvAsignadaA.text = textoAsignadaA
 
-        // Imagen ANTES
+        // ---------- Imagen ANTES ----------
         if (tarea.fotoAntesUrl.isNotBlank()) {
             holder.imgAntes.setBackgroundColor(
                 ContextCompat.getColor(context, android.R.color.transparent)
@@ -126,7 +127,7 @@ class TareaAdapter(
             holder.imgAntes.setImageResource(R.drawable.camera_icon)
         }
 
-        // Imagen DESPUÉS (solo si hay URL)
+        // ---------- Imagen DESPUÉS ----------
         if (tarea.fotoDespuesUrl.isNotBlank()) {
             holder.imgDespues.visibility = View.VISIBLE
             Glide.with(context)
@@ -138,19 +139,15 @@ class TareaAdapter(
             holder.imgDespues.visibility = View.GONE
         }
 
-        // ----- LÓGICA BOTÓN RESPONDER -----
-        val estadoEsPendiente = tarea.estado.equals("Pendiente", ignoreCase = true)
+        // ---------- Lógica botones según rol y estado ----------
+        val esRealizada = tarea.estado.equals("Realizada", ignoreCase = true)
+        val esPendiente = tarea.estado.equals("Pendiente", ignoreCase = true)
 
-        val puedeResponder = when {
-            // Si está realizada → nunca se responde
-            tarea.estado.equals("Realizada", ignoreCase = true) -> false
-
-            // Si está pendiente/asignada → ADMIN y REALIZAR pueden
-            estadoEsPendiente && (rolUsuario == ROL_REALIZAR || rolUsuario == ROL_ADMIN) -> true
-
-            // crear_tarea u otros roles → no
-            else -> false
-        }
+        // BOTÓN RESPONDER:
+        // Solo si NO está realizada y el rol es ADMIN o REALIZAR
+        val puedeResponder = !esRealizada &&
+                (rolUsuario == LoginActivity.ROL_ADMIN || rolUsuario == LoginActivity.ROL_REALIZAR) &&
+                esPendiente
 
         if (puedeResponder) {
             holder.btnResponderFoto.visibility = View.VISIBLE
@@ -161,6 +158,30 @@ class TareaAdapter(
         } else {
             holder.btnResponderFoto.visibility = View.GONE
             holder.btnResponderFoto.setOnClickListener(null)
+        }
+
+        // BOTÓN EDITAR:
+        // Solo ADMIN y solo si NO está realizada
+        if (rolUsuario == LoginActivity.ROL_ADMIN && !esRealizada) {
+            holder.btnEditarTarea.visibility = View.VISIBLE
+            holder.btnEditarTarea.setOnClickListener {
+                onEditarClick(tarea)
+            }
+        } else {
+            holder.btnEditarTarea.visibility = View.GONE
+            holder.btnEditarTarea.setOnClickListener(null)
+        }
+
+        // BOTÓN ELIMINAR:
+        // Solo ADMIN, en cualquier estado
+        if (rolUsuario == LoginActivity.ROL_ADMIN) {
+            holder.btnEliminarTarea.visibility = View.VISIBLE
+            holder.btnEliminarTarea.setOnClickListener {
+                onEliminarClick(tarea)
+            }
+        } else {
+            holder.btnEliminarTarea.visibility = View.GONE
+            holder.btnEliminarTarea.setOnClickListener(null)
         }
     }
 }

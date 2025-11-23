@@ -102,7 +102,7 @@ class CrearTareaActivity : AppCompatActivity() {
             seleccionarImagenLauncher.launch("image/*")
         }
 
-        binding.btnIngresar.setOnClickListener {
+        binding.btnCrearSolicitud.setOnClickListener {
             crearTarea()
         }
     }
@@ -242,7 +242,7 @@ class CrearTareaActivity : AppCompatActivity() {
 
     private fun mostrarCargando(mostrar: Boolean) {
         binding.progressBarCarga.visibility = if (mostrar) View.VISIBLE else View.GONE
-        binding.btnIngresar.isEnabled = !mostrar
+        binding.btnCrearSolicitud.isEnabled = !mostrar
         binding.btnImgAgregarFotografias.isEnabled = !mostrar
     }
 

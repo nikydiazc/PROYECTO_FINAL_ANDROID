@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/degradado_azul"
-    android:id="@+id/activity_login"
+    android:id="@+id/activity_crear_tarea"
     >
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -118,7 +118,7 @@
             app:layout_constraintEnd_toEndOf="parent" />
 
         <Button
-            android:id="@+id/btnIngresar"
+            android:id="@+id/btnCrearSolicitud"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="17dp"
