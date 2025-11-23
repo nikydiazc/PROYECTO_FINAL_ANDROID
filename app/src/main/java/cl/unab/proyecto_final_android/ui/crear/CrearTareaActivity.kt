@@ -1,4 +1,4 @@
-package cl.unab.proyecto_final_android
+package cl.unab.proyecto_final_android.ui.crear
 
 import android.app.AlertDialog
 import android.content.Intent
@@ -9,9 +9,14 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import cl.unab.proyecto_final_android.R
+import cl.unab.proyecto_final_android.Tarea
 import cl.unab.proyecto_final_android.databinding.ActivityCrearTareaBinding
+import cl.unab.proyecto_final_android.ui.login.LoginActivity
+import cl.unab.proyecto_final_android.ui.muro.MuroTareasActivity
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 
@@ -23,7 +28,7 @@ class CrearTareaActivity : AppCompatActivity() {
     private lateinit var firestore: FirebaseFirestore
     private lateinit var storage: FirebaseStorage
     private var imagenUri: Uri? = null
-    private var rolUsuario: String = LoginActivity.ROL_CREAR
+    private var rolUsuario: String = LoginActivity.Companion.ROL_CREAR
 
     // Selector de imagen de galería
     private val seleccionarImagenLauncher =
@@ -39,8 +44,8 @@ class CrearTareaActivity : AppCompatActivity() {
         binding = ActivityCrearTareaBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
-            ?: LoginActivity.ROL_CREAR
+        rolUsuario = intent.getStringExtra(LoginActivity.Companion.EXTRA_ROL_USUARIO)
+            ?: LoginActivity.Companion.ROL_CREAR
 
         configurarBottomNav()
 
@@ -65,7 +70,7 @@ class CrearTareaActivity : AppCompatActivity() {
                 R.id.nav_muro_tareas -> {
                     startActivity(
                         Intent(this, MuroTareasActivity::class.java).apply {
-                            putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
+                            putExtra(LoginActivity.Companion.EXTRA_ROL_USUARIO, rolUsuario)
                         }
                     )
                     true
@@ -179,7 +184,7 @@ class CrearTareaActivity : AppCompatActivity() {
     }
 
     private fun guardarTareaEnFirestore(
-        docRef: com.google.firebase.firestore.DocumentReference,
+        docRef: DocumentReference,
         tareaId: String,
         descripcion: String,
         ubicacion: String,
@@ -195,7 +200,7 @@ class CrearTareaActivity : AppCompatActivity() {
             fotoAntesUrl = fotoAntesUrl,
             fotoDespuesUrl = "",
             estado = "Pendiente",
-            fechaCreacion = Timestamp.now(),
+            fechaCreacion = Timestamp.Companion.now(),
             fechaRespuesta = null,
             creadaPor = creador,
             asignadaA = "",

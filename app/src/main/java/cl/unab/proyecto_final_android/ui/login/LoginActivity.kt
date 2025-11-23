@@ -1,10 +1,12 @@
-package cl.unab.proyecto_final_android
+package cl.unab.proyecto_final_android.ui.login
 
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import cl.unab.proyecto_final_android.ui.crear.CrearTareaActivity
 import cl.unab.proyecto_final_android.databinding.ActivityLoginBinding
+import cl.unab.proyecto_final_android.ui.muro.MuroTareasActivity
 
 class LoginActivity : AppCompatActivity() {
 

@@ -1,4 +1,4 @@
-package cl.unab.proyecto_final_android
+package cl.unab.proyecto_final_android.ui.muro
 
 import android.view.LayoutInflater
 import android.view.View
@@ -7,6 +7,8 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import cl.unab.proyecto_final_android.R
+import cl.unab.proyecto_final_android.Tarea
 import com.bumptech.glide.Glide
 
 class TareaAdapter(
@@ -108,4 +110,8 @@ class TareaAdapter(
         tareas = nuevaLista
         notifyDataSetChanged()
     }
+
+    fun obtenerTareaEnPosicion(position: Int): Tarea? =
+        if (position in tareas.indices) tareas[position] else null
+
 }

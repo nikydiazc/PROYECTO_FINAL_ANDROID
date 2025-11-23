@@ -1,10 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="true" />
+
 
     <application
         android:allowBackup="true"
@@ -17,7 +22,7 @@
         android:theme="@style/Theme.PROYECTO_FINAL_ANDROID">
 
         <activity
-            android:name=".LoginActivity"
+            android:name=".ui.login.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -26,11 +31,11 @@
         </activity>
 
         <activity
-            android:name=".MuroTareasActivity"
+            android:name=".ui.muro.MuroTareasActivity"
             android:exported="false" />
 
         <activity
-            android:name=".CrearTareaActivity"
+            android:name=".ui.crear.CrearTareaActivity"
             android:exported="false" />
 
         <!-- FileProvider para manejo de imágenes -->
