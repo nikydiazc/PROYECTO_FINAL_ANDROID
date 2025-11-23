@@ -1,7 +1,9 @@
 package cl.unab.proyecto_final_android
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
@@ -11,7 +13,9 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -20,6 +24,12 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
+import com.google.firebase.storage.FirebaseStorage
+import java.io.File
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MuroTareasActivity : AppCompatActivity() {
 
@@ -49,12 +59,17 @@ class MuroTareasActivity : AppCompatActivity() {
     private var pisoSeleccionado: String = "Todos"
     private var filtroSupervisor: String? = null
 
+    // para flujo de respuesta (foto después)
+    private var tareaSeleccionadaParaRespuesta: Tarea? = null
+    private var currentPhotoPathRespuesta: String? = null
+    private val REQUEST_FOTO_RESPUESTA = 2001
+
     data class SupervisorUsuario(
         val nombreVisible: String,
         val username: String
     )
 
-    // supervisores (ajusta username según lo que guardes en Firestore en asignadaA)
+    // supervisores
     private val listaSupervisores = listOf(
         SupervisorUsuario("Delfina Cabello (Poniente)", "delfina.cabello"),
         SupervisorUsuario("Rodrigo Reyes (Poniente)", "rodrigo.reyes"),
@@ -102,11 +117,12 @@ class MuroTareasActivity : AppCompatActivity() {
                 if (tarea.estado != "Pendiente") {
                     Toast.makeText(
                         this,
-                        "Solo se pueden marcar como realizadas las tareas pendientes",
+                        "Solo se pueden responder las tareas pendientes",
                         Toast.LENGTH_SHORT
                     ).show()
                 } else {
-                    mostrarDialogoMarcarRealizada(tarea)
+                    tareaSeleccionadaParaRespuesta = tarea
+                    abrirCamaraParaRespuesta()
                 }
             }
         )
@@ -119,9 +135,15 @@ class MuroTareasActivity : AppCompatActivity() {
 
     private fun configurarSpinnerPiso() {
         val pisos = mutableListOf("Todos")
-        for (i in 6 downTo 1) pisos.add("Piso $i")
-        pisos.add("Piso 0")
-        for (i in -1 downTo -6) pisos.add("Piso $i")
+
+        // Pisos positivos
+        for (i in 6 downTo 1) {
+            pisos.add("Piso $i")
+        }
+        // Pisos negativos (subterráneos)
+        for (i in -1 downTo -6) {
+            pisos.add("Piso $i")
+        }
 
         val adapterPiso = ArrayAdapter(
             this,
@@ -266,42 +288,17 @@ class MuroTareasActivity : AppCompatActivity() {
     }
 
     private fun marcarBotonActivo(botonActivo: Button) {
-        val btnPendientes = binding.btnTareasPendientes
-        val btnRealizadas = binding.btnTareasRealizadas
-        val btnAsignadas = binding.btnTareasAsignadas
+        val botones = listOf(
+            binding.btnTareasPendientes,
+            binding.btnTareasAsignadas,
+            binding.btnTareasRealizadas
+        )
 
-        // Cambia estos colores por los tuyos reales del colors.xml
-        val colorPendienteActivo = ContextCompat.getColorStateList(this, R.color.rojo_pendiente_activo)
-        val colorPendienteInactivo = ContextCompat.getColorStateList(this, R.color.rojo)
-
-        val colorAsignadasActivo = ContextCompat.getColorStateList(this, R.color.naranjo_asignadas_activo)
-        val colorAsignadasInactivo = ContextCompat.getColorStateList(this, R.color.naranjo)
-
-        val colorRealizadasActivo = ContextCompat.getColorStateList(this, R.color.verde_realizadas_activo)
-        val colorRealizadasInactivo = ContextCompat.getColorStateList(this, R.color.verde)
-
-        fun activar(btn: Button, activo: Boolean) {
-            when (btn.id) {
-                R.id.btnTareasPendientes -> {
-                    btn.backgroundTintList = if (activo) colorPendienteActivo else colorPendienteInactivo
-                }
-                R.id.btnTareasAsignadas -> {
-                    btn.backgroundTintList = if (activo) colorAsignadasActivo else colorAsignadasInactivo
-                }
-                R.id.btnTareasRealizadas -> {
-                    btn.backgroundTintList = if (activo) colorRealizadasActivo else colorRealizadasInactivo
-                }
-            }
-            // Texto SIEMPRE blanco
+        botones.forEach { btn ->
+            btn.alpha = if (btn == botonActivo) 1f else 0.5f
             btn.setTextColor(ContextCompat.getColor(this, R.color.white))
         }
-
-        activar(btnPendientes, botonActivo == btnPendientes)
-        activar(btnAsignadas, botonActivo == btnAsignadas)
-        activar(btnRealizadas, botonActivo == btnRealizadas)
     }
-
-
 
     private fun mostrarCargando(mostrar: Boolean) {
         binding.progressBarMuro.visibility = if (mostrar) View.VISIBLE else View.GONE
@@ -312,6 +309,7 @@ class MuroTareasActivity : AppCompatActivity() {
     }
 
     // -------------------- FIRESTORE --------------------
+
     private fun cargarTareasDesdeFirestore() {
         listenerTareas?.remove()
         mostrarCargando(true)
@@ -332,7 +330,7 @@ class MuroTareasActivity : AppCompatActivity() {
 
             "ASIGNADAS" -> {
                 if (esAdmin) {
-                    // Admin: ve pendientes asignadas (filtramos por asignadaA más abajo)
+                    // Admin: verá pendientes, filtramos asignadas en el loop
                     coleccion.whereEqualTo("estado", "Pendiente")
                 } else {
                     // Supervisor: pendientes asignadas a él
@@ -366,7 +364,6 @@ class MuroTareasActivity : AppCompatActivity() {
                 val pasaFiltroAsignadas = when (modoMuro) {
                     "ASIGNADAS" -> {
                         if (esAdmin) {
-                            // Admin: solo con asignadaA no vacío + filtro opcional
                             if (tarea.asignadaA.isBlank()) {
                                 false
                             } else if (filtroSupervisor.isNullOrEmpty()) {
@@ -375,8 +372,7 @@ class MuroTareasActivity : AppCompatActivity() {
                                 tarea.asignadaA == filtroSupervisor
                             }
                         } else {
-                            // supervisor ya viene filtrado por query
-                            true
+                            true // supervisor ya filtrado en la query
                         }
                     }
 
@@ -547,47 +543,153 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
-    // -------------------- MARCAR COMO REALIZADA --------------------
+    // -------------------- RESPUESTA (FOTO + COMENTARIO) --------------------
 
-    private fun mostrarDialogoMarcarRealizada(tarea: Tarea) {
-        AlertDialog.Builder(this)
-            .setTitle("Marcar tarea como realizada")
-            .setMessage("¿Confirmas que esta solicitud de limpieza fue atendida correctamente?")
-            .setPositiveButton("Sí, marcar como realizada") { _, _ ->
-                marcarTareaComoRealizada(tarea)
+    private fun abrirCamaraParaRespuesta() {
+        val intent = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)
+
+        if (intent.resolveActivity(packageManager) == null) {
+            Toast.makeText(this, "No se encontró una app de cámara", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val photoFile: File? = try {
+            crearArchivoImagenRespuesta()
+        } catch (ex: IOException) {
+            Toast.makeText(this, "Error al crear archivo de imagen", Toast.LENGTH_SHORT).show()
+            null
+        }
+
+        if (photoFile != null) {
+            val photoURI: Uri = FileProvider.getUriForFile(
+                this,
+                "${applicationContext.packageName}.provider",
+                photoFile
+            )
+            intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, photoURI)
+            startActivityForResult(intent, REQUEST_FOTO_RESPUESTA)
+        }
+    }
+
+    @Throws(IOException::class)
+    private fun crearArchivoImagenRespuesta(): File {
+        val timeStamp: String =
+            SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        return File.createTempFile(
+            "RESPUESTA_${timeStamp}_",
+            ".jpg",
+            storageDir
+        ).apply {
+            currentPhotoPathRespuesta = absolutePath
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == REQUEST_FOTO_RESPUESTA && resultCode == RESULT_OK) {
+            val path = currentPhotoPathRespuesta
+            val tarea = tareaSeleccionadaParaRespuesta
+
+            if (path != null && tarea != null) {
+                subirFotoRespuestaYAgregarComentario(tarea, path)
+            } else {
+                Toast.makeText(this, "No se pudo obtener la foto de respuesta", Toast.LENGTH_SHORT)
+                    .show()
             }
-            .setNegativeButton("Cancelar", null)
+        }
+    }
+
+    private fun subirFotoRespuestaYAgregarComentario(tarea: Tarea, photoPath: String) {
+        mostrarCargando(true)
+
+        val file = File(photoPath)
+        val uri = Uri.fromFile(file)
+
+        val storageRef = FirebaseStorage.getInstance().reference
+        val fotoRef = storageRef.child("respuestas_tareas/${tarea.id}_${file.name}")
+
+        fotoRef.putFile(uri)
+            .addOnSuccessListener {
+                fotoRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                    mostrarCargando(false)
+                    mostrarDialogoComentarioRespuesta(tarea, downloadUri.toString())
+                }.addOnFailureListener { e ->
+                    mostrarCargando(false)
+                    Toast.makeText(
+                        this,
+                        "Error al obtener URL de la imagen: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                mostrarCargando(false)
+                Toast.makeText(
+                    this,
+                    "Error al subir la imagen: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+    }
+
+    private fun mostrarDialogoComentarioRespuesta(tarea: Tarea, fotoDespuesUrl: String) {
+        val input = AppCompatEditText(this).apply {
+            hint = "Comentario (opcional)"
+            setPadding(40, 40, 40, 40)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Respuesta a la solicitud")
+            .setMessage("Puedes agregar un comentario sobre la limpieza realizada (opcional):")
+            .setView(input)
+            .setPositiveButton("Guardar respuesta") { _, _ ->
+                val comentario = input.text?.toString()?.trim().orEmpty()
+                guardarRespuestaTarea(tarea, fotoDespuesUrl, comentario)
+            }
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+            }
             .show()
     }
 
-    private fun marcarTareaComoRealizada(tarea: Tarea) {
+    private fun guardarRespuestaTarea(tarea: Tarea, fotoDespuesUrl: String, comentario: String) {
         if (tarea.id.isEmpty()) return
 
         mostrarCargando(true)
 
         val docRef = firestore.collection("tareas").document(tarea.id)
-        docRef.update(
-            mapOf(
-                "estado" to "Realizada",
-                "fechaRespuesta" to Timestamp.now()
-            )
-        ).addOnSuccessListener {
-            Toast.makeText(this, "Tarea marcada como realizada", Toast.LENGTH_SHORT).show()
+        val datosActualizar = mapOf(
+            "fotoDespuesUrl" to fotoDespuesUrl,
+            "comentarioRespuesta" to comentario,
+            "estado" to "Realizada",
+            "fechaRespuesta" to Timestamp.now()
+        )
 
-            if (modoMuro == "PENDIENTES") {
-                listaOriginal.removeAll { it.id == tarea.id }
-                listaFiltrada.removeAll { it.id == tarea.id }
-                adapter.actualizarLista(listaFiltrada.toList())
+        docRef.update(datosActualizar)
+            .addOnSuccessListener {
+                Toast.makeText(
+                    this,
+                    "Respuesta guardada y tarea marcada como realizada",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                if (modoMuro == "PENDIENTES" || modoMuro == "ASIGNADAS") {
+                    listaOriginal.removeAll { it.id == tarea.id }
+                    listaFiltrada.removeAll { it.id == tarea.id }
+                    adapter.actualizarLista(listaFiltrada.toList())
+                }
+
+                mostrarCargando(false)
             }
-
-            mostrarCargando(false)
-        }.addOnFailureListener { e ->
-            mostrarCargando(false)
-            Toast.makeText(
-                this,
-                "Error al marcar como realizada: ${e.message}",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
+            .addOnFailureListener { e ->
+                mostrarCargando(false)
+                Toast.makeText(
+                    this,
+                    "Error al guardar respuesta: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
     }
 }
