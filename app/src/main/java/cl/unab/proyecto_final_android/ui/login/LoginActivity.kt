@@ -42,7 +42,6 @@ class LoginActivity : AppCompatActivity() {
     private fun hacerLogin() {
         val usuarioIngresado = binding.etCorreo.text.toString().trim()
         val contrasenaIngresada = binding.etContrasena.text.toString().trim()
-        // ... (validaciones) ...
 
         val auth = FirebaseAuth.getInstance()
 

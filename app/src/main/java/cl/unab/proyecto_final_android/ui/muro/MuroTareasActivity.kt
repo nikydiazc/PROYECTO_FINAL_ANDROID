@@ -17,7 +17,7 @@ import cl.unab.proyecto_final_android.Tarea
 import cl.unab.proyecto_final_android.data.ModoMuro
 import cl.unab.proyecto_final_android.data.TareaRepository
 import cl.unab.proyecto_final_android.databinding.ActivityMuroTareasBinding
-import cl.unab.proyecto_final_android.ui.crear.CrearTareaActivity // Importa la Activity de destino
+import cl.unab.proyecto_final_android.ui.crear.CrearTareaActivity
 import cl.unab.proyecto_final_android.ui.login.LoginActivity
 import cl.unab.proyecto_final_android.util.FiltroFechaManager
 import cl.unab.proyecto_final_android.util.MuroConfigurator
@@ -212,9 +212,6 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
-    // ------- FUNCIONES PARA CREAR TAREA (FOTO ANTES) -------------
-
-    // Función de entrada para la cámara (llamada desde MuroConfigurator)
     fun intentarTomarFotoParaCreacion() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             lanzarCamaraParaCreacion()
@@ -240,10 +237,6 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
-    // --- ¡NUEVA FUNCIÓN REQUERIDA PARA EL LANZADOR! ---
-    /**
-     * Lanza la CrearTareaActivity, pasando la URI de la foto inicial.
-     */
     private fun lanzarCrearTareaActivity(uriFotoAntes: Uri) {
         val intent = Intent(this, CrearTareaActivity::class.java).apply {
             // Aseguramos que los datos de usuario vayan a la siguiente Activity

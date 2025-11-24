@@ -2,7 +2,7 @@ package cl.unab.proyecto_final_android.ui.muro
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import cl.unab.proyecto_final_android.data.TareaRepository // ⬅️ Asegúrate que este import sea correcto
+import cl.unab.proyecto_final_android.data.TareaRepository
 
 class TareasViewModelFactory(
     private val tareaRepository: TareaRepository,

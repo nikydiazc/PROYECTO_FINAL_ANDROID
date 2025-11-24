@@ -13,7 +13,7 @@ class TareaRepository(
 ) {
     private val COLLECTION_NAME = "tareas"
 
-    // ---------------------------------- RESPONDER TAREA (CÁMARA/STORAGE) ----------------------------------
+    // ----------- RESPONDER TAREA (CÁMARA/STORAGE) ---------
 
     fun subirFotoDeRespuesta(tarea: Tarea, fotoUri: Uri, callback: (String?, String?) -> Unit) {
 
@@ -56,7 +56,7 @@ class TareaRepository(
     }
 
 
-    // ---------------------------------- FILTROS Y LECTURA DE TAREAS ----------------------------------
+    // ------------- FILTROS Y LECTURA DE TAREAS ------------------
     fun getTareas(
         modo: ModoMuro,
         piso: String,
@@ -75,7 +75,7 @@ class TareaRepository(
             ModoMuro.ASIGNADAS -> query.whereEqualTo("estado", "Asignada")
         }
 
-        // 2. Filtro por Asignación (SOLO si el valor no es nulo/vacío)
+        // 2. Filtro por Asignación
         if (!asignadaA.isNullOrBlank()) {
             query = query.whereEqualTo("asignadaA", asignadaA)
         }
@@ -94,8 +94,6 @@ class TareaRepository(
         }
 
         // 5. Ordenar
-        // NOTA: Recuerda que esta línea (junto a los filtros whereEqualTo)
-        // REQUIERE que los índices compuestos estén habilitados en Firebase.
         query = query.orderBy("fechaCreacion", Query.Direction.DESCENDING)
 
 
@@ -104,7 +102,7 @@ class TareaRepository(
                 try {
                     var tareas = result.toObjects(Tarea::class.java)
 
-                    // 6. Filtro Local por Búsqueda (ACTUALIZADO para manejar campos nulos de forma segura)
+                    // 6. Filtro Local por Búsqueda
                     if (busqueda.isNotBlank()) {
                         val termino = busqueda.lowercase()
                         tareas = tareas.filter { tarea ->
@@ -119,7 +117,6 @@ class TareaRepository(
 
                     callback(tareas, null) // Éxito
                 } catch (e: Exception) {
-                    // El error de deserialización se debe a la clase Tarea.kt (¡Ya corregida!)
                     callback(null, "Error de Deserialización: Verifique Tarea.kt y datos. Detalles: ${e.message}")
                 }
             }
@@ -127,7 +124,7 @@ class TareaRepository(
                 callback(null, e.message)
             }
     }
-    // ---------------------------------- OTRAS FUNCIONES CRUD ----------------------------------
+    // -------------- OTRAS FUNCIONES CRUD ---------------
 
     fun eliminarTarea(tareaId: String, callback: (Boolean, String?) -> Unit) {
         db.collection(COLLECTION_NAME).document(tareaId)

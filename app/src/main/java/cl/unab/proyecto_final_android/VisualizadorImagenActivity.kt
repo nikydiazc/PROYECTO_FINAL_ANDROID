@@ -14,9 +14,7 @@ class VisualizadorImagenActivity : AppCompatActivity() {
     private lateinit var binding: ActivityVisualizadorImagenBinding
 
     companion object {
-        // ⚠️ CLAVE NUEVA: Ahora recibimos un ArrayList de Strings
         const val EXTRA_IMAGE_URLS = "extra_image_urls"
-        // Eliminamos EXTRA_IMAGE_URL
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,12 +29,12 @@ class VisualizadorImagenActivity : AppCompatActivity() {
 
         if (!imageUrls.isNullOrEmpty()) {
 
-            // Ocultamos la ProgressBar global (ahora cada item la tiene)
+            // Ocultamos la ProgressBar
             binding.progressBarImage.visibility = View.GONE
 
             // 2. Configurar el ViewPager2 con el nuevo adaptador
             val adapter = FullScreenImageAdapter(imageUrls) {
-                // Lambda para manejar el clic en la imagen (cerrar la Activity)
+                // Lambda para manejar el clic en la imagen
                 finish()
             }
             binding.viewPagerFullScreen.adapter = adapter

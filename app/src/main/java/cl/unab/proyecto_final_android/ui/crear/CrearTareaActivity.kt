@@ -14,7 +14,6 @@ import cl.unab.proyecto_final_android.Tarea
 import cl.unab.proyecto_final_android.databinding.ActivityCrearTareaBinding
 import cl.unab.proyecto_final_android.ui.login.LoginActivity
 import cl.unab.proyecto_final_android.ui.muro.MuroTareasActivity
-import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore

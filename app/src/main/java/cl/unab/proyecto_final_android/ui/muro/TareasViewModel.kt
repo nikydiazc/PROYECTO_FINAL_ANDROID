@@ -4,13 +4,12 @@ import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import cl.unab.proyecto_final_android.Tarea
 import cl.unab.proyecto_final_android.data.ModoMuro
 import cl.unab.proyecto_final_android.data.TareaRepository
 import com.google.firebase.Timestamp
 
-// ---------------------------------- ESTRUCTURA DE ESTADO DE LA UI ----------------------------------
+// --------- ESTRUCTURA DE ESTADO DE LA UI ------------
 data class MuroUiState(
     val tareas: List<Tarea> = emptyList(),
     val cargando: Boolean = false, // Maneja el Progress Bar
@@ -23,7 +22,7 @@ data class MuroUiState(
     val filtroFechaHasta: Timestamp? = null
 )
 
-// ---------------------------------- VIEWMODEL ----------------------------------
+// ------------- VIEWMODEL ---------------
 class TareasViewModel(
     private val tareaRepository: TareaRepository,
     private val esAdmin: Boolean,
@@ -38,8 +37,7 @@ class TareasViewModel(
         cargarTareas()
     }
 
-    // ---------------------------------- LÓGICA DE CARGA Y FILTROS (CORREGIDO) ----------------------------------
-
+    // ---------- LÓGICA DE CARGA Y FILTROS (CORREGIDO) -------
     /**
      * Función principal para cargar tareas usando los filtros del estado actual (uiState).
      * Esta función reemplaza a la antigua 'cargarTareasDelMuro'.
@@ -47,7 +45,7 @@ class TareasViewModel(
     fun cargarTareas() {
         val estadoActual = _uiState.value ?: return
 
-        // 1. ANTES: MUESTRA EL PROGRESS BAR (cargando = true) y limpia errores anteriores
+        // 1. ANTES: MUESTRA EL PROGRESS BAR
         _uiState.value = estadoActual.copy(cargando = true, error = null)
 
         // 2. Llama al Repositorio usando los filtros del estado
@@ -72,14 +70,13 @@ class TareasViewModel(
                     estadoActual.copy(tareas = emptyList(), error = errorMessage)
                 }
 
-                // 4. ¡LA CLAVE! OCULTAR EL PROGRESS BAR (cargando = false)
-                // Se actualiza el estado completo y se detiene la carga.
+                // 4. OCULTAR EL PROGRESS BAR (cargando = false)
                 _uiState.value = nuevoEstado.copy(cargando = false)
             }
         )
     }
 
-    // ---------------------------------- RESPONDER TAREA (Función de Cámara) ----------------------------------
+    // --------------- RESPONDER TAREA ----
 
     fun subirFotoDeRespuesta(tarea: Tarea, fotoUri: Uri, callback: (Boolean, String?) -> Unit) {
         // 1. Mostrar estado de carga (en la UI general)
@@ -144,9 +141,8 @@ class TareasViewModel(
         cargarTareas()
     }
 
-    // ---------------------------------- ACCIONES CRUD ----------------------------------
+    // ------------------ ACCIONES CRUD ------------------------------
 
-    // Después de cualquier acción CRUD, se llama a cargarTareas() para refrescar el muro.
 
     fun eliminarTarea(tarea: Tarea, callback: (Boolean, String?) -> Unit) {
         tareaRepository.eliminarTarea(tarea.id) { ok, error ->

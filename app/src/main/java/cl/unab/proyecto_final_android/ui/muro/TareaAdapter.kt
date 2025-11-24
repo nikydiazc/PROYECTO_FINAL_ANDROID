@@ -97,8 +97,6 @@ class TareaAdapter(
                 binding.tvFechaRespuesta.visibility = View.VISIBLE
                 binding.tvFechaRespuesta.text = "Realizada: ${formatearTimestamp(tarea.fechaRespuesta)}"
 
-                // 💡 CORREGIDO: Cargamos AMBAS fotos. imgTarea no se hace transparente.
-
                 // Cargar Foto ANTES (Parte Superior)
                 if (!tarea.fotoAntesUrl.isNullOrEmpty()) {
                     Glide.with(context)
@@ -125,10 +123,6 @@ class TareaAdapter(
                 // Los admins aún pueden editar o eliminar tareas realizadas
                 binding.btnEditarTarea.visibility = if (esAdmin) View.VISIBLE else View.GONE
                 binding.btnEliminarTarea.visibility = if (esAdmin) View.VISIBLE else View.GONE
-            }
-            // Agrega otros estados si los tienes (ej: "Rechazada")
-            else -> {
-                // Estado por defecto
             }
         }
 
