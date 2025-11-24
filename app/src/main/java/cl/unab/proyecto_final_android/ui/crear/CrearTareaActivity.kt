@@ -28,7 +28,7 @@ class CrearTareaActivity : AppCompatActivity() {
     private lateinit var firestore: FirebaseFirestore
     private lateinit var storage: FirebaseStorage
     private var imagenUri: Uri? = null
-    private var rolUsuario: String = LoginActivity.Companion.ROL_CREAR
+    private var rolUsuario: String = LoginActivity.ROL_CREAR
 
     // Selector de imagen de galería
     private val seleccionarImagenLauncher =
@@ -44,8 +44,8 @@ class CrearTareaActivity : AppCompatActivity() {
         binding = ActivityCrearTareaBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        rolUsuario = intent.getStringExtra(LoginActivity.Companion.EXTRA_ROL_USUARIO)
-            ?: LoginActivity.Companion.ROL_CREAR
+        rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
+            ?: LoginActivity.ROL_CREAR
 
         configurarBottomNav()
 
@@ -70,7 +70,7 @@ class CrearTareaActivity : AppCompatActivity() {
                 R.id.nav_muro_tareas -> {
                     startActivity(
                         Intent(this, MuroTareasActivity::class.java).apply {
-                            putExtra(LoginActivity.Companion.EXTRA_ROL_USUARIO, rolUsuario)
+                            putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
                         }
                     )
                     true
@@ -82,7 +82,12 @@ class CrearTareaActivity : AppCompatActivity() {
 
     private fun configurarSpinnerPiso() {
         val pisos = mutableListOf("Selecciona piso")
-        for (piso in 6 downTo -6) {
+
+        // CORRECCIÓN: Iterar del 6 al 1 y del -1 al -6 (excluyendo el 0)
+        for (piso in 6 downTo 1) {
+            pisos.add(piso.toString())
+        }
+        for (piso in -1 downTo -6) {
             pisos.add(piso.toString())
         }
 
@@ -106,32 +111,50 @@ class CrearTareaActivity : AppCompatActivity() {
             crearTarea()
         }
     }
-
     private fun crearTarea() {
         val descripcion = binding.txtDescripcion.text.toString().trim()
         val ubicacion = binding.autoCompleteUbicacion.text.toString().trim()
         val pisoSeleccionado = binding.spPiso.selectedItem?.toString() ?: ""
 
+        // 1. VALIDACIÓN DE DESCRIPCIÓN
         if (descripcion.isEmpty()) {
-            binding.txtDescripcion.error = "Ingrese una descripción"
+            binding.txtDescripcion.error = "Debe ingresar una descripción"
             return
         }
 
+        // 2. VALIDACIÓN DE UBICACIÓN
         if (ubicacion.isEmpty()) {
-            binding.autoCompleteUbicacion.error = "Ingrese una ubicación"
+            binding.autoCompleteUbicacion.error = "Debe ingresar una ubicación"
             return
         }
 
+        // 3. VALIDACIÓN DE PISO
         if (pisoSeleccionado == "Selecciona piso" || pisoSeleccionado.isEmpty()) {
             toast("Debe seleccionar un piso")
             return
         }
 
-        val usuarioActual = auth.currentUser
-        if (usuarioActual == null) {
-            toast("Error: no hay usuario autenticado")
+        // 4. VALIDACIÓN DE FOTOGRAFÍA (NUEVO REQUERIMIENTO)
+        if (imagenUri == null) {
+            toast("Debe agregar una fotografía para ingresar la solicitud.")
             return
         }
+
+        // --- Bloque de Autenticación (Se mantiene la corrección anterior) ---
+        val usuarioActual = auth.currentUser
+        val creador: String
+
+        if (usuarioActual == null) {
+            val usernameExtra = intent.getStringExtra(LoginActivity.EXTRA_USERNAME)
+            if (usernameExtra.isNullOrEmpty()) {
+                toast("Error: No se pudo obtener el usuario de la sesión.")
+                return
+            }
+            creador = usernameExtra
+        } else {
+            creador = usuarioActual.email ?: usuarioActual.uid
+        }
+        // --- Fin Bloque de Autenticación ---
 
         mostrarCargando(true)
 
@@ -139,7 +162,7 @@ class CrearTareaActivity : AppCompatActivity() {
         val nuevoDoc = coleccion.document()
         val tareaId = nuevoDoc.id
 
-        // Si hay imagen, primero la subimos
+        // Continuamos con el proceso de subida de imagen, ahora 'imagenUri' no es nulo
         imagenUri?.let { uri ->
             val referenciaImagen = storage.reference
                 .child("tareas")
@@ -162,7 +185,7 @@ class CrearTareaActivity : AppCompatActivity() {
                         ubicacion = ubicacion,
                         piso = pisoSeleccionado,
                         fotoAntesUrl = fotoAntesUrl,
-                        creador = usuarioActual.email ?: usuarioActual.uid
+                        creador = creador
                     )
                 }
                 .addOnFailureListener { e ->
@@ -170,7 +193,9 @@ class CrearTareaActivity : AppCompatActivity() {
                     toast("Error al subir la imagen: ${e.message}")
                 }
         } ?: run {
-            // Sin imagen, igual guardamos la tarea
+            // Este bloque solo se ejecutaría si 'imagenUri' fuera nulo,
+            // pero el código de validación anterior ya lo impide.
+            // Por seguridad, si ocurriera, se usa la versión sin foto.
             guardarTareaEnFirestore(
                 docRef = nuevoDoc,
                 tareaId = tareaId,
@@ -178,11 +203,10 @@ class CrearTareaActivity : AppCompatActivity() {
                 ubicacion = ubicacion,
                 piso = pisoSeleccionado,
                 fotoAntesUrl = "",
-                creador = usuarioActual.email ?: usuarioActual.uid
+                creador = creador
             )
         }
     }
-
     private fun guardarTareaEnFirestore(
         docRef: DocumentReference,
         tareaId: String,
@@ -200,7 +224,8 @@ class CrearTareaActivity : AppCompatActivity() {
             fotoAntesUrl = fotoAntesUrl,
             fotoDespuesUrl = "",
             estado = "Pendiente",
-            fechaCreacion = Timestamp.Companion.now(),
+            // Se usa el Companion para llamar a now()
+            fechaCreacion = Timestamp.now(),
             fechaRespuesta = null,
             creadaPor = creador,
             asignadaA = "",

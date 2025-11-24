@@ -7,6 +7,7 @@ import cl.unab.proyecto_final_android.Tarea
 import cl.unab.proyecto_final_android.data.ModoMuro
 import cl.unab.proyecto_final_android.data.TareaRepository
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.Timestamp
 
 data class TareasUiState(
     val modoMuro: ModoMuro = ModoMuro.PENDIENTES,
@@ -15,7 +16,9 @@ data class TareasUiState(
     val error: String? = null,
     val textoBusqueda: String = "",
     val pisoSeleccionado: String = "Todos",
-    val filtroSupervisor: String? = null
+    val filtroSupervisor: String? = null,
+    val filtroFechaDesde: Timestamp? = null,
+    val filtroFechaHasta: Timestamp? = null
 )
 
 class TareasViewModel(
@@ -48,6 +51,8 @@ class TareasViewModel(
             esAdmin = esAdmin,
             usernameActual = usernameActual,
             filtroSupervisor = state.filtroSupervisor,
+            fechaDesde = state.filtroFechaDesde,
+            fechaHasta = state.filtroFechaHasta,
             onSuccess = { lista ->
                 listaBase = lista
                 aplicarFiltrosLocalesYPublicar()
@@ -62,6 +67,7 @@ class TareasViewModel(
             }
         )
     }
+
 
     private fun aplicarFiltrosLocalesYPublicar() {
         val state = _uiState.value ?: return
@@ -176,6 +182,27 @@ class TareasViewModel(
                 onResultado(false, e.message)
             }
         }
+    }
+    fun aplicarFiltroFechas(desde: Timestamp?, hasta: Timestamp?) {
+        val state = _uiState.value ?: return
+        _uiState.value = state.copy(filtroFechaDesde = desde, filtroFechaHasta = hasta)
+        cargarTareas()
+    }
+// TareasViewModel.kt
+
+    fun limpiarTodosLosFiltros() {
+        val state = _uiState.value ?: return
+
+        _uiState.value = state.copy(
+            textoBusqueda = "",
+            pisoSeleccionado = "Todos",
+            filtroSupervisor = null,
+            filtroFechaDesde = null,
+            filtroFechaHasta = null
+        )
+
+        // Recargamos la lista limpia
+        cargarTareas()
     }
 
 }

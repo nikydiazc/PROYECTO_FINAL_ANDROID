@@ -1,4 +1,4 @@
-package cl.unab.proyecto_final_android
+package cl.unab.proyecto_final_android.ui.muro
 
 import android.view.LayoutInflater
 import android.view.View
@@ -9,6 +9,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import cl.unab.proyecto_final_android.R
+import cl.unab.proyecto_final_android.Tarea
 import com.bumptech.glide.Glide
 import cl.unab.proyecto_final_android.ui.login.LoginActivity
 import java.text.SimpleDateFormat
@@ -35,6 +37,7 @@ class TareaAdapter(
         "jorge.geisbuhler" to "Jorge Geisbuhler (Oriente)"
     )
 
+    // Se usa el SimpleDateFormat
     private val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
     inner class TareaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -77,11 +80,12 @@ class TareaAdapter(
         // ---------- Texto base ----------
         holder.tvDescripcion.text = tarea.descripcion.ifBlank { "Sin descripción" }
         holder.tvUbicacion.text = "Ubicación: ${tarea.ubicacion.ifBlank { "-" }}"
-        holder.tvPiso.text = tarea.piso.ifBlank { "Piso -" }
+        holder.tvPiso.text = "Piso ${tarea.piso.ifBlank { "-" }}"
 
         // Fecha de creación
-        val fechaCreacionTexto = tarea.fechaCreacion?.toDate()?.let {
-            "Creada: ${sdf.format(it)}"
+        // CORRECCIÓN DE SINTAXIS: Uso de .toDate() en el objeto Timestamp
+        val fechaCreacionTexto = tarea.fechaCreacion?.let { timestamp ->
+            "Creada: ${sdf.format(timestamp.toDate())}"
         } ?: "Creada: -"
         holder.tvFechaCreacion.text = fechaCreacionTexto
 

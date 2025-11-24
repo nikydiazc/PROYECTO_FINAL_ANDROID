@@ -3,7 +3,7 @@ package cl.unab.proyecto_final_android
 import com.google.firebase.Timestamp
 
 data class Tarea(
-    val id: String = "",
+    var id: String = "",
     val descripcion: String = "",
     val ubicacion: String = "",
     val piso: String = "",

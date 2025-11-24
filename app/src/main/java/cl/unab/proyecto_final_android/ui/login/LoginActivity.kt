@@ -7,6 +7,8 @@ import androidx.appcompat.app.AppCompatActivity
 import cl.unab.proyecto_final_android.ui.crear.CrearTareaActivity
 import cl.unab.proyecto_final_android.databinding.ActivityLoginBinding
 import cl.unab.proyecto_final_android.ui.muro.MuroTareasActivity
+import com.google.firebase.auth.FirebaseAuth
+
 
 class LoginActivity : AppCompatActivity() {
 
@@ -29,55 +31,50 @@ class LoginActivity : AppCompatActivity() {
 
         configurarEventos()
     }
+
     private fun configurarEventos() {
-        binding.btnCrearSolicitud.setOnClickListener {
+        // CORRECCIÓN CRÍTICA: Usar el ID correcto del botón del XML
+        binding.btnIngresar.setOnClickListener {
             hacerLogin()
         }
     }
+
+    // LoginActivity.kt (Modificación en hacerLogin)
     private fun hacerLogin() {
         val usuarioIngresado = binding.etCorreo.text.toString().trim()
         val contrasenaIngresada = binding.etContrasena.text.toString().trim()
+        // ... (validaciones) ...
 
-        if (usuarioIngresado.isEmpty() || contrasenaIngresada.isEmpty()) {
-            Toast.makeText(this, "Ingresa usuario y contraseña", Toast.LENGTH_SHORT).show()
-            return
-        }
+        val auth = FirebaseAuth.getInstance()
 
-        // 1) Determinar rol según usuario + contraseña
-        val rol = when {
-            usuarioIngresado.equals("crear_tarea", ignoreCase = true) &&
-                    contrasenaIngresada == "Creartarea01" -> {
-                ROL_CREAR
+        // Intentar autenticar con Firebase Auth
+        auth.signInWithEmailAndPassword(usuarioIngresado, contrasenaIngresada)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    // Autenticación exitosa, ahora determinamos el rol para la lógica de la app
+                    val rol = when {
+                        // Mantenemos la lógica 'when' para determinar el rol de la aplicación
+                        // basado en el email/contraseña simulados.
+                        usuarioIngresado.equals("crear_tarea", ignoreCase = true) -> ROL_CREAR
+                        usuarioIngresado.equals("administrador", ignoreCase = true) ||
+                                usuarioIngresado.equals("administrador@miapp.com", ignoreCase = true) -> ROL_ADMIN
+                        usuarioIngresado.equals("realizar_tarea", ignoreCase = true) -> ROL_REALIZAR
+                        else -> ROL_REALIZAR
+                    }
+
+                    val esAdmin = (rol == ROL_ADMIN)
+
+                    // Redirigir la navegación
+                    when (rol) {
+                        ROL_CREAR -> irACrearTarea(usuarioIngresado, rol, esAdmin)
+                        ROL_ADMIN, ROL_REALIZAR -> irAMuroTareas(usuarioIngresado, rol, esAdmin)
+                    }
+                } else {
+                    // Falló la autenticación en Firebase Auth
+                    Toast.makeText(this, "Error de credenciales o de red. Intenta de nuevo.", Toast.LENGTH_LONG).show()
+                }
             }
-
-            // 👇 AQUÍ: admin puede ser "administrador" o "administrador@miapp.com"
-            (usuarioIngresado.equals("administrador", ignoreCase = true) ||
-                    usuarioIngresado.equals("administrador@miapp.com", ignoreCase = true)) &&
-                    contrasenaIngresada == "Administrador02" -> {
-                ROL_ADMIN
-            }
-
-            usuarioIngresado.equals("realizar_tarea", ignoreCase = true) &&
-                    contrasenaIngresada == "Realizartarea03" -> {
-                ROL_REALIZAR
-            }
-
-            else -> {
-                // Supervisores u otros → ROL_REALIZAR
-                ROL_REALIZAR
-            }
-        }
-
-        val esAdmin = (rol == ROL_ADMIN)
-
-        // 2) Redirigir según el rol
-        when (rol) {
-            ROL_CREAR -> irACrearTarea(usuarioIngresado, rol, esAdmin)
-            ROL_ADMIN,
-            ROL_REALIZAR -> irAMuroTareas(usuarioIngresado, rol, esAdmin)
-        }
     }
-
 
     private fun irACrearTarea(username: String, rol: String, esAdmin: Boolean) {
         val intent = Intent(this, CrearTareaActivity::class.java).apply {

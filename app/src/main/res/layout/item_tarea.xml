@@ -17,7 +17,7 @@
         <!-- Foto ANTES -->
         <ImageView
             android:id="@+id/imgTarea"
-            android:layout_width="150dp"
+            android:layout_width="130dp"
             android:layout_height="220dp"
             android:background="@color/white"
             android:scaleType="centerInside"
@@ -155,7 +155,6 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="4dp"
             android:src="@drawable/ic_edit"
-            android:tint="@color/blue"
             app:layout_constraintStart_toEndOf="@id/btnResponderFoto"
             app:layout_constraintTop_toTopOf="@id/btnResponderFoto"
             app:layout_constraintBottom_toBottomOf="@id/btnResponderFoto" />
@@ -169,7 +168,6 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="4dp"
             android:src="@drawable/ic_delete"
-            android:tint="@color/blue"
             app:layout_constraintStart_toEndOf="@id/btnEditarTarea"
             app:layout_constraintTop_toTopOf="@id/btnResponderFoto"
             app:layout_constraintBottom_toBottomOf="@id/btnResponderFoto"

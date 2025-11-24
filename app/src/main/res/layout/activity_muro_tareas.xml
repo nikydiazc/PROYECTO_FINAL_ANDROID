@@ -89,19 +89,92 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Filtro por piso -->
-        <Spinner
-            android:id="@+id/spFiltroPiso"
+
+        <LinearLayout
+            android:id="@+id/layoutFiltrosDual"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
             android:layout_marginTop="8dp"
-            android:background="@drawable/cornertxtview"
+            android:weightSum="2"
             app:layout_constraintTop_toBottomOf="@id/spFiltroSupervisor"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent">
 
+            <Spinner
+                android:id="@+id/spFiltroPiso"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="0.8"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/cornertxtview" />
 
-    <!-- RecyclerView de tareas -->
+            <LinearLayout
+                android:id="@+id/layoutFiltroFechas"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.2"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone"
+                >
+
+                <TextView
+                    android:id="@+id/tvFechaDesde"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/cornertxtview"
+                    android:hint="Desde: DD/MM/AAAA"
+                    android:paddingStart="10dp"
+                    android:drawableStart="@drawable/ic_calendar"
+                    android:drawablePadding="6dp"
+                    android:gravity="center_vertical"
+                    android:textColor="@color/gris"
+                    android:textSize="14sp"
+                    android:clickable="true"
+                    android:focusable="false"/>
+
+                <TextView
+                    android:id="@+id/tvFechaHasta"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/cornertxtview"
+                    android:hint="Hasta: DD/MM/AAAA"
+                    android:paddingStart="10dp"
+                    android:drawableStart="@drawable/ic_calendar"
+                    android:drawablePadding="6dp"
+                    android:gravity="center_vertical"
+                    android:textColor="@color/gris"
+                    android:textSize="14sp"
+                    android:clickable="true"
+                    android:focusable="false"/>
+
+                <ImageButton
+                    android:id="@+id/btnAplicarFiltroFecha"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/ic_search"
+                    android:background="@drawable/corner_button_green"
+                    android:scaleType="centerInside"
+                    android:contentDescription="Aplicar filtro de fecha" />
+
+                <ImageButton
+                    android:id="@+id/btnLimpiarFiltroFecha"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:background="@drawable/corner_button_red"
+                    android:scaleType="centerInside"
+                    android:contentDescription="Limpiar filtro" />
+
+            </LinearLayout>
+        </LinearLayout>
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvTareas"
             android:layout_width="0dp"
@@ -110,7 +183,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/spFiltroPiso" />
+            app:layout_constraintTop_toBottomOf="@id/layoutFiltrosDual" />
 
     <!-- ProgressBar centrado -->
     <ProgressBar

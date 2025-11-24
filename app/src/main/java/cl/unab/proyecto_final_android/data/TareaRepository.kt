@@ -7,7 +7,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
+import java.io.File
 
+// Definición del Enum
 enum class ModoMuro {
     PENDIENTES, ASIGNADAS, REALIZADAS
 }
@@ -22,171 +24,121 @@ class TareaRepository(
         esAdmin: Boolean,
         usernameActual: String,
         filtroSupervisor: String?,
+        fechaDesde: Timestamp?,
+        fechaHasta: Timestamp?,
         onSuccess: (List<Tarea>) -> Unit,
         onError: (Throwable) -> Unit
     ): ListenerRegistration {
 
         val coleccion = firestore.collection("tareas")
+        val campoFecha: String
+        var query: Query
 
-        val query: Query = when (modoMuro) {
-            ModoMuro.PENDIENTES -> {
-                coleccion
+        // 1. Lógica de selección de modo y filtros base
+        if (modoMuro == ModoMuro.REALIZADAS) {
+            campoFecha = "fechaRespuesta"
+            query = coleccion.whereEqualTo("estado", "Realizada")
+        } else {
+            campoFecha = "fechaCreacion"
+
+            query = when (modoMuro) {
+                ModoMuro.PENDIENTES -> coleccion
                     .whereEqualTo("estado", "Pendiente")
                     .whereEqualTo("asignadaA", "")
-            }
-            ModoMuro.REALIZADAS -> {
-                coleccion.whereEqualTo("estado", "Realizada")
-            }
-            ModoMuro.ASIGNADAS -> {
-                if (esAdmin) {
-                    // admin ve pendientes; filtraremos asignadas más abajo
-                    coleccion.whereEqualTo("estado", "Pendiente")
-                } else {
-                    coleccion
-                        .whereEqualTo("estado", "Pendiente")
-                        .whereEqualTo("asignadaA", usernameActual)
+
+                ModoMuro.ASIGNADAS -> {
+                    // LÓGICA CORREGIDA PARA "TODOS" (El cambio que hicimos)
+                    if (esAdmin && filtroSupervisor.isNullOrEmpty()) {
+                        // Si es Admin y ve "Todos", traemos todas las pendientes
+                        // (Filtraremos las "sin asignar" manualmente más abajo)
+                        coleccion.whereEqualTo("estado", "Pendiente")
+                    } else {
+                        // Usuario normal o Admin buscando a alguien específico
+                        val targetUsername = filtroSupervisor ?: usernameActual
+                        coleccion
+                            .whereEqualTo("estado", "Pendiente")
+                            .whereEqualTo("asignadaA", targetUsername)
+                    }
                 }
+                else -> coleccion
             }
         }
 
+        // 2. Aplicar Filtros de Fecha y Ordenamiento
+        if (fechaDesde != null || fechaHasta != null) {
+            query = query.orderBy(campoFecha, Query.Direction.DESCENDING)
+            if (fechaDesde != null) query = query.whereGreaterThanOrEqualTo(campoFecha, fechaDesde)
+            if (fechaHasta != null) query = query.whereLessThanOrEqualTo(campoFecha, fechaHasta)
+        } else {
+            query = query.orderBy(campoFecha, Query.Direction.DESCENDING)
+        }
+
+        // 3. Listener y RETURN (¡Esto es lo que faltaba!)
         return query.addSnapshotListener { snapshot, e ->
             if (e != null) {
                 onError(e)
                 return@addSnapshotListener
             }
 
-            val lista = mutableListOf<Tarea>()
-            val docs = snapshot?.documents ?: emptyList()
-
-            for (doc in docs) {
-                val tarea = doc.toObject(Tarea::class.java)?.copy(id = doc.id) ?: continue
-
-                val pasaFiltroAsignadas = when (modoMuro) {
-                    ModoMuro.ASIGNADAS -> {
-                        if (esAdmin) {
-                            if (tarea.asignadaA.isBlank()) {
-                                false
-                            } else if (filtroSupervisor.isNullOrEmpty()) {
-                                true
-                            } else {
-                                tarea.asignadaA == filtroSupervisor
-                            }
-                        } else true
+            if (snapshot != null) {
+                var tareas = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Tarea::class.java)?.apply {
+                        this.id = doc.id
                     }
-                    else -> true
                 }
 
-                if (pasaFiltroAsignadas) {
-                    lista.add(tarea)
+                // --- FILTRO FINAL DE SEGURIDAD ---
+                // Si estamos en ASIGNADAS viendo "Todos", ocultamos las que no tienen dueño
+                // para que no se mezclen con las "Pendientes" puras.
+                if (modoMuro == ModoMuro.ASIGNADAS && esAdmin && filtroSupervisor.isNullOrEmpty()) {
+                    tareas = tareas.filter { it.asignadaA.isNotEmpty() }
                 }
+
+                onSuccess(tareas)
+            } else {
+                onSuccess(emptyList())
             }
-
-            onSuccess(lista)
         }
     }
 
-    fun eliminarTarea(
-        tareaId: String,
-        onResult: (Result<Unit>) -> Unit
-    ) {
-        firestore.collection("tareas")
-            .document(tareaId)
-            .delete()
-            .addOnSuccessListener {
-                onResult(Result.success(Unit))
-            }
-            .addOnFailureListener { e ->
-                onResult(Result.failure(e))
-            }
-    }
+    // --- MÉTODOS DE ESCRITURA (ELIMINAR, ASIGNAR, RESPONDER, EDITAR) ---
 
-    fun asignarTarea(
-        tareaId: String,
-        usernameSupervisor: String,
-        onResult: (Result<Unit>) -> Unit
-    ) {
-        firestore.collection("tareas")
-            .document(tareaId)
-            .update(
-                mapOf(
-                    "asignadaA" to usernameSupervisor,
-                    "estado" to "Pendiente"
-                )
-            )
+    fun eliminarTarea(tareaId: String, onResult: (Result<Unit>) -> Unit) {
+        firestore.collection("tareas").document(tareaId).delete()
             .addOnSuccessListener { onResult(Result.success(Unit)) }
             .addOnFailureListener { e -> onResult(Result.failure(e)) }
     }
 
-    fun guardarRespuesta(
-        tareaId: String,
-        localPhotoPath: String,
-        comentario: String,
-        onResult: (Result<Unit>) -> Unit
-    ) {
-        val fileUri = Uri.fromFile(java.io.File(localPhotoPath))
-        val storageRef = storage.reference
-        val fotoRef = storageRef.child("respuestas_tareas/${tareaId}_${fileUri.lastPathSegment}")
+    fun asignarTarea(tareaId: String, usernameSupervisor: String, onResult: (Result<Unit>) -> Unit) {
+        firestore.collection("tareas").document(tareaId)
+            .update(mapOf("asignadaA" to usernameSupervisor, "estado" to "Pendiente"))
+            .addOnSuccessListener { onResult(Result.success(Unit)) }
+            .addOnFailureListener { e -> onResult(Result.failure(e)) }
+    }
 
-        fotoRef.putFile(fileUri)
-            .addOnSuccessListener {
-                fotoRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                    actualizarRespuestaEnFirestore(
-                        tareaId,
-                        downloadUri.toString(),
-                        comentario,
-                        onResult
+    fun guardarRespuesta(tareaId: String, localPhotoPath: String, comentario: String, onResult: (Result<Unit>) -> Unit) {
+        val fileUri = Uri.fromFile(File(localPhotoPath))
+        val ref = storage.reference.child("respuestas_tareas/${tareaId}_${fileUri.lastPathSegment}")
+
+        ref.putFile(fileUri).addOnSuccessListener {
+            ref.downloadUrl.addOnSuccessListener { uri ->
+                firestore.collection("tareas").document(tareaId).update(
+                    mapOf(
+                        "fotoDespuesUrl" to uri.toString(),
+                        "comentarioRespuesta" to comentario,
+                        "estado" to "Realizada",
+                        "fechaRespuesta" to Timestamp.now()
                     )
-                }.addOnFailureListener { e ->
-                    onResult(Result.failure(e))
-                }
+                ).addOnSuccessListener { onResult(Result.success(Unit)) }
+                    .addOnFailureListener { e -> onResult(Result.failure(e)) }
             }
-            .addOnFailureListener { e ->
-                onResult(Result.failure(e))
-            }
+        }.addOnFailureListener { e -> onResult(Result.failure(e)) }
     }
 
-    private fun actualizarRespuestaEnFirestore(
-        tareaId: String,
-        fotoDespuesUrl: String,
-        comentario: String,
-        onResult: (Result<Unit>) -> Unit
-    ) {
-        firestore.collection("tareas")
-            .document(tareaId)
-            .update(
-                mapOf(
-                    "fotoDespuesUrl" to fotoDespuesUrl,
-                    "comentarioRespuesta" to comentario,
-                    "estado" to "Realizada",
-                    "fechaRespuesta" to Timestamp.now()
-                )
-            )
+    fun actualizarCamposTarea(tareaId: String, desc: String, ubi: String, piso: String, onResult: (Result<Unit>) -> Unit) {
+        firestore.collection("tareas").document(tareaId)
+            .update(mapOf("descripcion" to desc, "ubicacion" to ubi, "piso" to piso))
             .addOnSuccessListener { onResult(Result.success(Unit)) }
             .addOnFailureListener { e -> onResult(Result.failure(e)) }
     }
-
-    fun actualizarCamposTarea(
-        tareaId: String,
-        nuevaDescripcion: String,
-        nuevaUbicacion: String,
-        nuevoPiso: String,
-        onResult: (Result<Unit>) -> Unit
-    ) {
-        val data = mapOf(
-            "descripcion" to nuevaDescripcion,
-            "ubicacion" to nuevaUbicacion,
-            "piso" to nuevoPiso
-        )
-
-        firestore.collection("tareas")
-            .document(tareaId)
-            .update(data)
-            .addOnSuccessListener {
-                onResult(Result.success(Unit))
-            }
-            .addOnFailureListener { e ->
-                onResult(Result.failure(e))
-            }
-    }
-
 }
