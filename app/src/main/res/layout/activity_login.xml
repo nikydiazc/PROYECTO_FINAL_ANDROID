@@ -36,7 +36,7 @@
         android:hint="Correo eléctronico o usuario"
         android:inputType="textEmailAddress"
         android:textColor="@color/gris"
-        android:textSize="14sp"
+        android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
@@ -98,7 +98,7 @@
         android:hint="Contraseña"
         android:inputType="textPassword"
         android:textColor="@color/gris"
-        android:textSize="14sp" />
+        android:textSize="16sp" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

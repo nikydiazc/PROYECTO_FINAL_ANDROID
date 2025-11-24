@@ -313,21 +313,61 @@ class MuroTareasActivity : AppCompatActivity() {
 
     // -------------------- BOTTOM NAV & OBSERVERS --------------------
 
+// MuroTareasActivity.kt
+
     private fun configurarBottomNav() {
         binding.bottomNav.selectedItemId = R.id.nav_muro_tareas
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_crear_tarea -> {
+                    // Navegación a Crear Tarea
                     startActivity(Intent(this, CrearTareaActivity::class.java).apply {
                         putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
                         putExtra(LoginActivity.EXTRA_USERNAME, usernameActual)
                     })
                     true
                 }
-                R.id.nav_muro_tareas -> true
+                R.id.nav_muro_tareas -> {
+                    // Permanece en esta Activity
+                    true
+                }
+                R.id.nav_usuario -> {
+                    // ABRIR DIÁLOGO DE CERRAR SESIÓN (NUEVA LÓGICA)
+                    mostrarDialogoCerrarSesion()
+
+                    // IMPORTANTE: Devolvemos 'false' para que el ícono no se quede seleccionado
+                    // si el usuario presiona "Cancelar" en el diálogo.
+                    false
+                }
                 else -> false
             }
         }
+    }
+
+    // MuroTareasActivity.kt
+
+    private fun mostrarDialogoCerrarSesion() {
+        AlertDialog.Builder(this)
+            .setTitle("Cerrar Sesión")
+            .setMessage("¿Estás seguro que deseas cerrar tu sesión actual?")
+            .setPositiveButton("Cerrar Sesión") { dialog, which ->
+                // Cierra la sesión y redirige al Login
+                cerrarSesionYRedirigir()
+            }
+            .setNegativeButton("Cancelar", null) // Simplemente cierra el diálogo
+            .show()
+    }
+
+    private fun cerrarSesionYRedirigir() {
+        // 1. Aquí se pueden agregar pasos como firebaseAuth.signOut() si usas autenticación.
+        // Por ahora, solo limpiamos el historial de navegación.
+
+        val intent = Intent(this, LoginActivity::class.java).apply {
+            // Flags para limpiar el stack de actividades
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
     }
 
     private fun observarViewModel() {

@@ -17,52 +17,50 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/bottomNav">
 
-    <!-- Filtros arriba: Pendientes / Realizadas -->
-    <LinearLayout
-        android:id="@+id/layoutFiltrosEstado"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:weightSum="3"
-        android:paddingTop="40dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <Button
-            android:id="@+id/btnTareasPendientes"
+        <LinearLayout
+            android:id="@+id/layoutFiltrosEstado"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Pendientes"
-            android:textStyle="bold"
-            android:backgroundTint="@color/rojo" />
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:weightSum="3"
+            android:paddingTop="40dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
-        <Button
-            android:id="@+id/btnTareasAsignadas"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:text="Asignadas"
-            android:textStyle="bold"
-            android:backgroundTint="@color/naranjo"
-            android:textColor="@color/white" />
+            <Button
+                android:id="@+id/btnTareasPendientes"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Pendientes"
+                android:textStyle="bold"
+                android:backgroundTint="@color/rojo" />
 
-        <Button
-            android:id="@+id/btnTareasRealizadas"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:text="Realizadas"
-            android:textStyle="bold"
-            android:backgroundTint="@color/verde"
-            android:textColor="@color/white" />
-    </LinearLayout>
+            <Button
+                android:id="@+id/btnTareasAsignadas"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="Asignadas"
+                android:textStyle="bold"
+                android:backgroundTint="@color/naranjo"
+                android:textColor="@color/white" />
 
-        <!-- Buscador -->
+            <Button
+                android:id="@+id/btnTareasRealizadas"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="Realizadas"
+                android:textStyle="bold"
+                android:backgroundTint="@color/verde"
+                android:textColor="@color/white" />
+        </LinearLayout>
+
         <EditText
             android:id="@+id/etBuscarDescripcionOUbicacion"
             android:layout_width="0dp"
@@ -77,7 +75,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Filtro por supervisor (solo admin) -->
         <Spinner
             android:id="@+id/spFiltroSupervisor"
             android:layout_width="0dp"
@@ -101,77 +98,102 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <Spinner
-                android:id="@+id/spFiltroPiso"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="0.8"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/cornertxtview" />
-
             <LinearLayout
-                android:id="@+id/layoutFiltroFechas"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1.2"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:visibility="gone"
-                >
+                android:layout_weight="0.6"
+                android:orientation="vertical"
+                android:layout_marginEnd="8dp">
 
                 <TextView
-                    android:id="@+id/tvFechaDesde"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="Filtrar por Piso:"
+                    android:textColor="@color/white"
+                    android:textStyle="bold" />
+
+                <Spinner
+                    android:id="@+id/spFiltroPiso"
+                    android:layout_width="match_parent"
                     android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="4dp"
-                    android:background="@drawable/cornertxtview"
-                    android:hint="Desde: DD/MM/AAAA"
-                    android:paddingStart="10dp"
-                    android:drawableStart="@drawable/ic_calendar"
-                    android:drawablePadding="6dp"
-                    android:gravity="center_vertical"
-                    android:textColor="@color/gris"
-                    android:textSize="14sp"
-                    android:clickable="true"
-                    android:focusable="false"/>
+                    android:background="@drawable/cornertxtview" />
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.4"
+                android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/tvFechaHasta"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:background="@drawable/cornertxtview"
-                    android:hint="Hasta: DD/MM/AAAA"
-                    android:paddingStart="10dp"
-                    android:drawableStart="@drawable/ic_calendar"
-                    android:drawablePadding="6dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="Filtrar por Fecha:"
+                    android:textColor="@color/white"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/layoutFiltroFechas"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:textColor="@color/gris"
-                    android:textSize="14sp"
-                    android:clickable="true"
-                    android:focusable="false"/>
+                    android:visibility="visible" >
 
-                <ImageButton
-                    android:id="@+id/btnAplicarFiltroFecha"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:src="@drawable/ic_search"
-                    android:background="@drawable/corner_button_green"
-                    android:scaleType="centerInside"
-                    android:contentDescription="Aplicar filtro de fecha" />
+                    <TextView
+                        android:id="@+id/tvFechaDesde"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:background="@drawable/cornertxtview"
+                        android:hint="Desde:"
+                        android:paddingStart="10dp"
+                        android:drawablePadding="6dp"
+                        android:gravity="center_vertical"
+                        android:textColor="@color/gris"
+                        android:textSize="12sp"
+                        android:clickable="true"
+                        android:focusable="false"/>
 
-                <ImageButton
-                    android:id="@+id/btnLimpiarFiltroFecha"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="8dp"
-                    android:src="@android:drawable/ic_menu_close_clear_cancel"
-                    android:background="@drawable/corner_button_red"
-                    android:scaleType="centerInside"
-                    android:contentDescription="Limpiar filtro" />
+                    <TextView
+                        android:id="@+id/tvFechaHasta"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/cornertxtview"
+                        android:hint="Hasta:"
+                        android:paddingStart="10dp"
+                        android:drawablePadding="6dp"
+                        android:gravity="center_vertical"
+                        android:textColor="@color/gris"
+                        android:textSize="12sp"
+                        android:clickable="true"
+                        android:focusable="false"/>
 
+                    <ImageButton
+                        android:id="@+id/btnAplicarFiltroFecha"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_search"
+                        android:background="@drawable/corner_button_green"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Aplicar filtro de fecha" />
+
+                    <ImageButton
+                        android:id="@+id/btnLimpiarFiltroFecha"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="8dp"
+                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        android:background="@drawable/corner_button_red"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Limpiar filtro" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
@@ -185,16 +207,15 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/layoutFiltrosDual" />
 
-    <!-- ProgressBar centrado -->
-    <ProgressBar
-        android:id="@+id/progressBarMuro"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <ProgressBar
+            android:id="@+id/progressBarMuro"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -211,4 +232,4 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
