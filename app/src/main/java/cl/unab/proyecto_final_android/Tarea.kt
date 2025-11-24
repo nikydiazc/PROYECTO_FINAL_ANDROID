@@ -1,23 +1,26 @@
 package cl.unab.proyecto_final_android
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentId
 
 data class Tarea(
-    var id: String = "",
-    val descripcion: String = "",
-    val ubicacion: String = "",
-    val piso: String = "",
+    @DocumentId val id: String = "",
 
-    // Imagen antes
-    val fotoAntesUrl: String = "",
+    // Todos los Strings que pueden faltar o ser null deben ser String?
+    val descripcion: String? = null,
+    val ubicacion: String? = null,
+    val piso: String? = null,
+    val estado: String = "Pendiente", // Asumimos que "estado" siempre se inicializa
 
-    // Imagen después (respuesta)
-    val fotoDespuesUrl: String = "",
+    // URLs
+    val fotoAntesUrl: String? = null,
+    val fotoDespuesUrl: String? = null,
 
-    val estado: String = "Pendiente",
-    val fechaCreacion: Timestamp? = null,
-    val fechaRespuesta: Timestamp? = null,
-    val creadaPor: String = "",
-    val asignadaA: String = "",
-    val comentarioRespuesta: String = ""
+    // Fechas
+    val fechaCreacion: Timestamp = Timestamp.now(), // Asumimos que existe
+    val fechaRespuesta: Timestamp? = null, // Puede ser null
+
+    // Usuarios
+    val creadaPor: String? = null,
+    val asignadaA: String? = null
 )

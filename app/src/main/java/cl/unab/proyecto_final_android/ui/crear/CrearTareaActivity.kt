@@ -219,22 +219,26 @@ class CrearTareaActivity : AppCompatActivity() {
         fotoAntesUrl: String,
         creador: String
     ) {
+
         val tarea = Tarea(
-            id = tareaId,
             descripcion = descripcion,
             ubicacion = ubicacion,
             piso = piso,
             fotoAntesUrl = fotoAntesUrl,
-            fotoDespuesUrl = "",
-            estado = "Pendiente",
-            // Se usa el Companion para llamar a now()
-            fechaCreacion = Timestamp.now(),
-            fechaRespuesta = null,
-            creadaPor = creador,
-            asignadaA = "",
-            comentarioRespuesta = ""
-        )
 
+            // Estos campos usan los valores predeterminados seguros de Tarea.kt:
+            // estado = "Pendiente"
+            // fechaCreacion = Timestamp.now()
+            // fotoDespuesUrl = ""
+            // asignadaA = ""
+            // comentarioRespuesta = ""
+
+            // Campo que SI debemos definir explícitamente:
+            creadaPor = creador
+
+            // Omitimos: asignadaA, fotoDespuesUrl, fechaRespuesta, comentarioRespuesta
+            // Porque tienen valores por defecto en Tarea.kt y no queremos que fallen.
+        )
         docRef.set(tarea)
             .addOnSuccessListener {
                 mostrarCargando(false)

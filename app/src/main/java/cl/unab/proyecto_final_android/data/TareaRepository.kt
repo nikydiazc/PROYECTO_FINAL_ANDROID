@@ -4,141 +4,151 @@ import android.net.Uri
 import cl.unab.proyecto_final_android.Tarea
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
-import java.io.File
-
-// Definición del Enum
-enum class ModoMuro {
-    PENDIENTES, ASIGNADAS, REALIZADAS
-}
 
 class TareaRepository(
-    private val firestore: FirebaseFirestore,
+    private val db: FirebaseFirestore,
     private val storage: FirebaseStorage
 ) {
+    private val COLLECTION_NAME = "tareas"
 
-    fun escucharTareas(
-        modoMuro: ModoMuro,
-        esAdmin: Boolean,
-        usernameActual: String,
-        filtroSupervisor: String?,
+    // ---------------------------------- RESPONDER TAREA (CÁMARA/STORAGE) ----------------------------------
+
+    fun subirFotoDeRespuesta(tarea: Tarea, fotoUri: Uri, callback: (String?, String?) -> Unit) {
+
+        // 1. Referencia de Firebase Storage: unique name using ID and timestamp
+        val storageRef = storage.reference.child("respuestas/${tarea.id}_${System.currentTimeMillis()}.jpg")
+
+        // 2. Subir el archivo
+        storageRef.putFile(fotoUri)
+            .addOnSuccessListener { taskSnapshot ->
+                // Subida exitosa, obtener URL de descarga
+                taskSnapshot.storage.downloadUrl.addOnSuccessListener { downloadUri ->
+                    val fotoDespuesUrl = downloadUri.toString()
+
+                    // 3. Actualizar Firestore: Cambiar estado, fecha y URL
+                    val updates = mapOf(
+                        "estado" to "Realizada",
+                        "fechaRespuesta" to Timestamp.now(),
+                        "fotoDespuesUrl" to fotoDespuesUrl
+                    )
+
+                    db.collection(COLLECTION_NAME).document(tarea.id)
+                        .update(updates)
+                        .addOnSuccessListener {
+                            // Éxito total: Subida y actualización completadas
+                            callback(fotoDespuesUrl, null)
+                        }
+                        .addOnFailureListener { firestoreException ->
+                            // Fallo al actualizar Firestore
+                            callback(null, "Fallo al actualizar Firestore: ${firestoreException.message}")
+                        }
+                }.addOnFailureListener { urlException ->
+                    // Fallo al obtener la URL de descarga
+                    callback(null, "Fallo al obtener URL: ${urlException.message}")
+                }
+            }
+            .addOnFailureListener { storageException ->
+                // Fallo al subir a Storage
+                callback(null, "Fallo al subir foto a Storage: ${storageException.message}")
+            }
+    }
+
+
+    // ---------------------------------- FILTROS Y LECTURA DE TAREAS ----------------------------------
+    fun getTareas(
+        modo: ModoMuro,
+        piso: String,
+        busqueda: String,
+        asignadaA: String?,
         fechaDesde: Timestamp?,
         fechaHasta: Timestamp?,
-        onSuccess: (List<Tarea>) -> Unit,
-        onError: (Throwable) -> Unit
-    ): ListenerRegistration {
+        callback: (List<Tarea>?, String?) -> Unit
+    ) {
+        var query: Query = db.collection(COLLECTION_NAME)
 
-        val coleccion = firestore.collection("tareas")
-        val campoFecha: String
-        var query: Query
+        // 1. Filtro por Modo/Estado
+        query = when (modo) {
+            ModoMuro.PENDIENTES -> query.whereEqualTo("estado", "Pendiente")
+            ModoMuro.REALIZADAS -> query.whereEqualTo("estado", "Realizada")
+            ModoMuro.ASIGNADAS -> query.whereEqualTo("estado", "Asignada")
+        }
 
-        // 1. Lógica de selección de modo y filtros base
-        if (modoMuro == ModoMuro.REALIZADAS) {
-            campoFecha = "fechaRespuesta"
-            query = coleccion.whereEqualTo("estado", "Realizada")
-        } else {
-            campoFecha = "fechaCreacion"
+        // 2. Filtro por Asignación (SOLO si el valor no es nulo/vacío)
+        if (!asignadaA.isNullOrBlank()) {
+            query = query.whereEqualTo("asignadaA", asignadaA)
+        }
 
-            query = when (modoMuro) {
-                ModoMuro.PENDIENTES -> coleccion
-                    .whereEqualTo("estado", "Pendiente")
-                    .whereEqualTo("asignadaA", "")
+        // 3. Filtro por Piso
+        if (piso != "Todos") {
+            query = query.whereEqualTo("piso", piso)
+        }
 
-                ModoMuro.ASIGNADAS -> {
-                    // LÓGICA CORREGIDA PARA "TODOS" (El cambio que hicimos)
-                    if (esAdmin && filtroSupervisor.isNullOrEmpty()) {
-                        // Si es Admin y ve "Todos", traemos todas las pendientes
-                        // (Filtraremos las "sin asignar" manualmente más abajo)
-                        coleccion.whereEqualTo("estado", "Pendiente")
-                    } else {
-                        // Usuario normal o Admin buscando a alguien específico
-                        val targetUsername = filtroSupervisor ?: usernameActual
-                        coleccion
-                            .whereEqualTo("estado", "Pendiente")
-                            .whereEqualTo("asignadaA", targetUsername)
+        // 4. Filtro por Fechas (en base al campo fechaCreacion)
+        if (fechaDesde != null) {
+            query = query.whereGreaterThanOrEqualTo("fechaCreacion", fechaDesde)
+        }
+        if (fechaHasta != null) {
+            query = query.whereLessThanOrEqualTo("fechaCreacion", fechaHasta)
+        }
+
+        // 5. Ordenar
+        // NOTA: Recuerda que esta línea (junto a los filtros whereEqualTo)
+        // REQUIERE que los índices compuestos estén habilitados en Firebase.
+        query = query.orderBy("fechaCreacion", Query.Direction.DESCENDING)
+
+
+        query.get()
+            .addOnSuccessListener { result ->
+                try {
+                    var tareas = result.toObjects(Tarea::class.java)
+
+                    // 6. Filtro Local por Búsqueda (ACTUALIZADO para manejar campos nulos de forma segura)
+                    if (busqueda.isNotBlank()) {
+                        val termino = busqueda.lowercase()
+                        tareas = tareas.filter { tarea ->
+                            // Verifica si descripcion NO es nula antes de convertir a minúsculas y buscar.
+                            val descripcionMatch = tarea.descripcion?.lowercase()?.contains(termino) ?: false
+                            // Verifica si ubicacion NO es nula antes de convertir a minúsculas y buscar.
+                            val ubicacionMatch = tarea.ubicacion?.lowercase()?.contains(termino) ?: false
+
+                            descripcionMatch || ubicacionMatch
+                        }
                     }
+
+                    callback(tareas, null) // Éxito
+                } catch (e: Exception) {
+                    // El error de deserialización se debe a la clase Tarea.kt (¡Ya corregida!)
+                    callback(null, "Error de Deserialización: Verifique Tarea.kt y datos. Detalles: ${e.message}")
                 }
-                else -> coleccion
             }
-        }
-
-        // 2. Aplicar Filtros de Fecha y Ordenamiento
-        if (fechaDesde != null || fechaHasta != null) {
-            query = query.orderBy(campoFecha, Query.Direction.DESCENDING)
-            if (fechaDesde != null) query = query.whereGreaterThanOrEqualTo(campoFecha, fechaDesde)
-            if (fechaHasta != null) query = query.whereLessThanOrEqualTo(campoFecha, fechaHasta)
-        } else {
-            query = query.orderBy(campoFecha, Query.Direction.DESCENDING)
-        }
-
-        // 3. Listener y RETURN (¡Esto es lo que faltaba!)
-        return query.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                onError(e)
-                return@addSnapshotListener
+            .addOnFailureListener { e ->
+                callback(null, e.message)
             }
+    }
+    // ---------------------------------- OTRAS FUNCIONES CRUD ----------------------------------
 
-            if (snapshot != null) {
-                var tareas = snapshot.documents.mapNotNull { doc ->
-                    doc.toObject(Tarea::class.java)?.apply {
-                        this.id = doc.id
-                    }
-                }
-
-                // --- FILTRO FINAL DE SEGURIDAD ---
-                // Si estamos en ASIGNADAS viendo "Todos", ocultamos las que no tienen dueño
-                // para que no se mezclen con las "Pendientes" puras.
-                if (modoMuro == ModoMuro.ASIGNADAS && esAdmin && filtroSupervisor.isNullOrEmpty()) {
-                    tareas = tareas.filter { it.asignadaA.isNotEmpty() }
-                }
-
-                onSuccess(tareas)
-            } else {
-                onSuccess(emptyList())
-            }
-        }
+    fun eliminarTarea(tareaId: String, callback: (Boolean, String?) -> Unit) {
+        db.collection(COLLECTION_NAME).document(tareaId)
+            .delete()
+            .addOnSuccessListener { callback(true, null) }
+            .addOnFailureListener { e -> callback(false, e.message) }
     }
 
-    // --- MÉTODOS DE ESCRITURA (ELIMINAR, ASIGNAR, RESPONDER, EDITAR) ---
-
-    fun eliminarTarea(tareaId: String, onResult: (Result<Unit>) -> Unit) {
-        firestore.collection("tareas").document(tareaId).delete()
-            .addOnSuccessListener { onResult(Result.success(Unit)) }
-            .addOnFailureListener { e -> onResult(Result.failure(e)) }
+    fun actualizarEstado(tareaId: String, nuevoEstado: String, callback: (Boolean, String?) -> Unit) {
+        db.collection(COLLECTION_NAME).document(tareaId)
+            .update("estado", nuevoEstado)
+            .addOnSuccessListener { callback(true, null) }
+            .addOnFailureListener { e -> callback(false, e.message) }
     }
 
-    fun asignarTarea(tareaId: String, usernameSupervisor: String, onResult: (Result<Unit>) -> Unit) {
-        firestore.collection("tareas").document(tareaId)
-            .update(mapOf("asignadaA" to usernameSupervisor, "estado" to "Pendiente"))
-            .addOnSuccessListener { onResult(Result.success(Unit)) }
-            .addOnFailureListener { e -> onResult(Result.failure(e)) }
+    fun actualizarTarea(tareaId: String, updates: Map<String, Any>, callback: (Boolean, String?) -> Unit) {
+        db.collection(COLLECTION_NAME).document(tareaId)
+            .update(updates)
+            .addOnSuccessListener { callback(true, null) }
+            .addOnFailureListener { e -> callback(false, e.message) }
     }
 
-    fun guardarRespuesta(tareaId: String, localPhotoPath: String, comentario: String, onResult: (Result<Unit>) -> Unit) {
-        val fileUri = Uri.fromFile(File(localPhotoPath))
-        val ref = storage.reference.child("respuestas_tareas/${tareaId}_${fileUri.lastPathSegment}")
 
-        ref.putFile(fileUri).addOnSuccessListener {
-            ref.downloadUrl.addOnSuccessListener { uri ->
-                firestore.collection("tareas").document(tareaId).update(
-                    mapOf(
-                        "fotoDespuesUrl" to uri.toString(),
-                        "comentarioRespuesta" to comentario,
-                        "estado" to "Realizada",
-                        "fechaRespuesta" to Timestamp.now()
-                    )
-                ).addOnSuccessListener { onResult(Result.success(Unit)) }
-                    .addOnFailureListener { e -> onResult(Result.failure(e)) }
-            }
-        }.addOnFailureListener { e -> onResult(Result.failure(e)) }
-    }
-
-    fun actualizarCamposTarea(tareaId: String, desc: String, ubi: String, piso: String, onResult: (Result<Unit>) -> Unit) {
-        firestore.collection("tareas").document(tareaId)
-            .update(mapOf("descripcion" to desc, "ubicacion" to ubi, "piso" to piso))
-            .addOnSuccessListener { onResult(Result.success(Unit)) }
-            .addOnFailureListener { e -> onResult(Result.failure(e)) }
-    }
 }
