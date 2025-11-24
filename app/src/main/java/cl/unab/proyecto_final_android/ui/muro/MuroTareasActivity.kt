@@ -84,6 +84,9 @@ class MuroTareasActivity : AppCompatActivity() {
         binding = ActivityMuroTareasBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // FORZAR ELIMINACIÓN DEL TINT (los iconos de la barra quedaban de un solo color)
+        binding.bottomNav.itemIconTintList = null
+
         // Datos que vienen del login
         rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
             ?: LoginActivity.ROL_REALIZAR

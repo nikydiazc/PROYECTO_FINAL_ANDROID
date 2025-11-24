@@ -44,6 +44,9 @@ class CrearTareaActivity : AppCompatActivity() {
         binding = ActivityCrearTareaBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // FORZAR ELIMINACIÓN DEL TINT (los iconos de la barra quedaban de un solo color)
+        binding.bottomNav.itemIconTintList = null
+
         rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
             ?: LoginActivity.ROL_CREAR
 
