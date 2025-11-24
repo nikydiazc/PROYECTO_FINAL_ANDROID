@@ -154,7 +154,7 @@ class MuroTareasActivity : AppCompatActivity() {
     }
 
     // Función que lanza la cámara (si el permiso es OK)
-    private fun lanzarCamaraDespuesDePermiso(tarea: Tarea) {
+    internal fun lanzarCamaraDespuesDePermiso(tarea: Tarea) {
         fotoRespuestaUri = crearUriDeArchivoTemporal()
         val uriParaLanzar = fotoRespuestaUri
 
@@ -166,7 +166,7 @@ class MuroTareasActivity : AppCompatActivity() {
     }
 
     // Función auxiliar para crear la URI temporal
-    private fun crearUriDeArchivoTemporal(): Uri? {
+    internal fun crearUriDeArchivoTemporal(): Uri? {
         try {
             val storageDir: File = applicationContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
                 ?: return null
@@ -189,7 +189,7 @@ class MuroTareasActivity : AppCompatActivity() {
     }
 
     // Función que delega al ViewModel
-    private fun iniciarProcesoDeRespuesta(tarea: Tarea, uri: Uri) {
+    internal fun iniciarProcesoDeRespuesta(tarea: Tarea, uri: Uri) {
         Toast.makeText(this, "Iniciando subida de foto para la tarea: ${tarea.descripcion}", Toast.LENGTH_SHORT).show()
 
         viewModel.subirFotoDeRespuesta(tarea, uri) { exito, error ->

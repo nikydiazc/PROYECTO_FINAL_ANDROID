@@ -70,6 +70,20 @@ dependencies {
     //Ojo contraseña
     implementation("com.google.android.material:material:1.12.0")
 
+    // Tests unitarios (JVM)
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.9.0")
+    testImplementation("org.mockito:mockito-inline:5.2.0")
+    testImplementation("org.mockito:mockito-core:5.2.0")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
+    testImplementation("androidx.arch.core:core-testing:2.1.0")
+    androidTestImplementation("org.mockito:mockito-android:4.8.0")
+    androidTestImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
 
+    // Tests de instrumentación (AndroidTest)
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
+    androidTestImplementation("androidx.test.espresso:espresso-contrib:3.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test:core-ktx:1.5.0")
 
 }
