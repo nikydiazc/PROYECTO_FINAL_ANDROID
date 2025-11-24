@@ -29,12 +29,20 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 
 object MuroConfigurator {
 
-    // Lista de Supervisores (Movida aquí)
-    data class SupervisorUsuario(val nombreVisible: String, val username: String)
 
+    data class SupervisorUsuario(val nombreVisible: String, val username: String)
     private val listaSupervisores = listOf(
+        // --- Supervisores Poniente ---
         SupervisorUsuario("Delfina Cabello (Poniente)", "delfina.cabello"),
-        // ... (resto de tus supervisores)
+        SupervisorUsuario("Rodrigo Reyes (Poniente)", "rodrigo.reyes"),
+        SupervisorUsuario("Maria Caruajulca (Poniente)", "maria.caruajulca"),
+        SupervisorUsuario("Cristian Vergara (Poniente)", "cristian.vergara"),
+        SupervisorUsuario("Enrique Mendez (Poniente)", "enrique.mendez"),
+        SupervisorUsuario("Norma Marican (Poniente)", "norma.marican"),
+
+        // --- Supervisores Oriente ---
+        SupervisorUsuario("John Vilchez (Oriente)", "john.vilchez"),
+        SupervisorUsuario("Libia Florez (Oriente)", "libia.florez"),
         SupervisorUsuario("Jorge Geisbuhler (Oriente)", "jorge.geisbuhler")
     )
 
@@ -157,7 +165,6 @@ object MuroConfigurator {
 
     }
 
-
     private fun cambiarModoYActualizarUI(
         binding: ActivityMuroTareasBinding,
         viewModel: TareasViewModel,
@@ -202,12 +209,9 @@ object MuroConfigurator {
         binding.layoutFiltroFechas.visibility = View.VISIBLE
     }
 
-
-    // Archivo: MuroConfigurator.kt (Función correcta)
-
     fun configurarBottomNav(activity: MuroTareasActivity, bottomNav: BottomNavigationView, rolUsuario: String, usernameActual: String) {
 
-        // 🎨 Esto fuerza a que los iconos usen su color original (o el definido en el XML)
+        //Esto fuerza a que los iconos usen su color original (o el definido en el XML)
         bottomNav.itemIconTintList = null
 
         bottomNav.selectedItemId = R.id.nav_muro_tareas
@@ -234,8 +238,6 @@ object MuroConfigurator {
     }
 
 
-
-
     private fun mostrarDialogoCerrarSesion(activity: MuroTareasActivity) {
         AlertDialog.Builder(activity)
             .setTitle("Cerrar Sesión")
@@ -251,7 +253,7 @@ object MuroConfigurator {
             .show()
     }
 
-    // -------------------- LÓGICA DE EDICIÓN / ELIMINACIÓN (Ahora aquí) --------------------
+    // -------- EDICIÓN / ELIMINACIÓN----------------
 
     fun confirmarEliminacionTarea(context: Context, viewModel: TareasViewModel, tarea: Tarea) {
         AlertDialog.Builder(context)
@@ -267,8 +269,6 @@ object MuroConfigurator {
             .show()
     }
 
-// Archivo: MuroConfigurator.kt
-
     fun mostrarDialogoEditarTarea(context: Context, viewModel: TareasViewModel, tarea: Tarea) {
         val view = (context as MuroTareasActivity).layoutInflater.inflate(cl.unab.proyecto_final_android.R.layout.dialog_editar_tarea, null)
         val etDesc = view.findViewById<AppCompatEditText>(cl.unab.proyecto_final_android.R.id.etDescripcionEditar)
@@ -283,7 +283,6 @@ object MuroConfigurator {
         for (i in 6 downTo 1) pisos.add("Piso $i")
         for (i in -1 downTo -6) pisos.add("Piso $i")
 
-        // 💡 CORRECCIÓN CLAVE: Usar android.R.layout
         val adp = ArrayAdapter(context, android.R.layout.simple_spinner_item, pisos)
 
         spPiso.adapter = adp
@@ -295,13 +294,12 @@ object MuroConfigurator {
             .setTitle("Editar tarea")
             .setView(view)
             .setPositiveButton("Guardar") { _, _ ->
-                // ... (Resto del código)
             }
             .setNegativeButton("Cancelar", null)
             .show()
     }
 
-    // -------------------- SWIPE (Ahora aquí) --------------------
+    // --------- SWIPE------------
 
     fun configurarSwipeConRol(activity: MuroTareasActivity, rv: RecyclerView, adapter: TareaAdapter, viewModel: TareasViewModel, esAdmin: Boolean) {
         val callback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {

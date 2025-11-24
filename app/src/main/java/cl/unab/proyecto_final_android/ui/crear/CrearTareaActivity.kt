@@ -68,7 +68,7 @@ class CrearTareaActivity : AppCompatActivity() {
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_crear_tarea -> {
-                    true // ya estamos aquí
+                    true
                 }
                 R.id.nav_muro_tareas -> {
                     startActivity(
@@ -86,7 +86,6 @@ class CrearTareaActivity : AppCompatActivity() {
     private fun configurarSpinnerPiso() {
         val pisos = mutableListOf("Selecciona piso")
 
-        // CORRECCIÓN: Iterar del 6 al 1 y del -1 al -6 (excluyendo el 0)
         for (piso in 6 downTo 1) {
             pisos.add(piso.toString())
         }
@@ -143,7 +142,7 @@ class CrearTareaActivity : AppCompatActivity() {
             return
         }
 
-        // --- Bloque de Autenticación (Se mantiene la corrección anterior) ---
+        // --- Bloque de Autenticación---
         val usuarioActual = auth.currentUser
         val creador: String
 
@@ -225,19 +224,8 @@ class CrearTareaActivity : AppCompatActivity() {
             ubicacion = ubicacion,
             piso = piso,
             fotoAntesUrl = fotoAntesUrl,
-
-            // Estos campos usan los valores predeterminados seguros de Tarea.kt:
-            // estado = "Pendiente"
-            // fechaCreacion = Timestamp.now()
-            // fotoDespuesUrl = ""
-            // asignadaA = ""
-            // comentarioRespuesta = ""
-
-            // Campo que SI debemos definir explícitamente:
             creadaPor = creador
 
-            // Omitimos: asignadaA, fotoDespuesUrl, fechaRespuesta, comentarioRespuesta
-            // Porque tienen valores por defecto en Tarea.kt y no queremos que fallen.
         )
         docRef.set(tarea)
             .addOnSuccessListener {

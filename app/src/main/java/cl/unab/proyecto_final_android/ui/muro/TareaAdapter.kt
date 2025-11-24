@@ -3,6 +3,7 @@ package cl.unab.proyecto_final_android.ui.muro
 import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.view.View
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import cl.unab.proyecto_final_android.R
@@ -56,90 +57,88 @@ class TareaAdapter(
         // Formatear Fechas
         binding.tvFechaCreacion.text = "Creada: ${formatearTimestamp(tarea.fechaCreacion)}"
 
-        // Determinar qué ImageView usaremos para la imagen de referencia (Antes)
-        val imgReferencia = binding.imgTarea
-
         // 2. LÓGICA DE ESTADO (PENDIENTES, ASIGNADAS, REALIZADAS)
         when (tarea.estado) {
-            "Pendiente" -> {
-                binding.tvEstadoTarea.text = "Estado: Pendiente"
+            "Pendiente", "Asignada" -> {
+                binding.tvEstadoTarea.text = "Estado: ${tarea.estado}"
                 binding.tvEstadoTarea.setTextColor(context.getColor(android.R.color.holo_red_dark))
-                binding.btnResponderFoto.visibility = if (tarea.asignadaA == usernameActual || esAdmin) ViewGroup.VISIBLE else ViewGroup.GONE
+
+                // Mostrar Responder si la tarea es para el usuario actual o es Admin
+                binding.btnResponderFoto.visibility = if (tarea.asignadaA == usernameActual || esAdmin) View.VISIBLE else View.GONE
 
                 // Ocultar elementos de Realizada
-                binding.imgRespuesta.visibility = ViewGroup.GONE
-                binding.tvFechaRespuesta.visibility = ViewGroup.GONE
+                binding.imgRespuesta.visibility = View.GONE
+                binding.tvFechaRespuesta.visibility = View.GONE
 
-                // Cargar Imagen ANTES
+                // 💡 Corregido: Si está Pendiente, solo cargamos la foto Antes
                 if (!tarea.fotoAntesUrl.isNullOrEmpty()) {
-                    Glide.with(context).load(tarea.fotoAntesUrl).into(imgReferencia)
+                    Glide.with(context)
+                        .load(tarea.fotoAntesUrl)
+                        .placeholder(R.drawable.camera_icon)
+                        .error(R.drawable.error_placeholder) // Útil para depurar fallos
+                        .into(binding.imgTarea)
                 } else {
-                    imgReferencia.setImageResource(R.drawable.camera_icon)
+                    binding.imgTarea.setImageResource(R.drawable.camera_icon)
                 }
 
-                // Mostrar botones de Admin/Supervisor solo si es su tarea o es Admin
+                // Mostrar botones de Admin/Supervisor
                 val showAdminButtons = esAdmin || tarea.asignadaA == usernameActual
-                binding.btnEditarTarea.visibility = if (showAdminButtons) ViewGroup.VISIBLE else ViewGroup.GONE
-                binding.btnEliminarTarea.visibility = if (showAdminButtons) ViewGroup.VISIBLE else ViewGroup.GONE
+                binding.btnEditarTarea.visibility = if (showAdminButtons) View.VISIBLE else View.GONE
+                binding.btnEliminarTarea.visibility = if (showAdminButtons) View.VISIBLE else View.GONE
+
             }
             "Realizada" -> {
                 binding.tvEstadoTarea.text = "Estado: Realizada"
                 binding.tvEstadoTarea.setTextColor(context.getColor(android.R.color.holo_green_dark))
-                binding.btnResponderFoto.visibility = ViewGroup.GONE
+                binding.btnResponderFoto.visibility = View.GONE
 
-                // Mostrar elementos de Realizada
-                binding.imgRespuesta.visibility = ViewGroup.VISIBLE
-                binding.tvFechaRespuesta.visibility = ViewGroup.VISIBLE
+                // Mostrar elementos de Realizada (Ahora están apilados con imgTarea)
+                binding.imgRespuesta.visibility = View.VISIBLE
+                binding.tvFechaRespuesta.visibility = View.VISIBLE
                 binding.tvFechaRespuesta.text = "Realizada: ${formatearTimestamp(tarea.fechaRespuesta)}"
 
-                // Cargar Foto DESPUÉS (principal)
-                if (!tarea.fotoDespuesUrl.isNullOrEmpty()) {
-                    Glide.with(context).load(tarea.fotoDespuesUrl).into(binding.imgRespuesta)
+                // 💡 CORREGIDO: Cargamos AMBAS fotos. imgTarea no se hace transparente.
+
+                // Cargar Foto ANTES (Parte Superior)
+                if (!tarea.fotoAntesUrl.isNullOrEmpty()) {
+                    Glide.with(context)
+                        .load(tarea.fotoAntesUrl)
+                        .placeholder(R.drawable.camera_icon)
+                        .error(R.drawable.error_placeholder)
+                        .into(binding.imgTarea)
+                } else {
+                    binding.imgTarea.setImageResource(R.drawable.camera_icon)
                 }
-                // Asegurar que la imagen "antes" no se muestre doble o quede con datos antiguos
-                imgReferencia.setImageResource(android.R.color.transparent)
+
+                // Cargar Foto DESPUÉS (Parte Inferior)
+                if (!tarea.fotoDespuesUrl.isNullOrEmpty()) {
+                    Glide.with(context)
+                        .load(tarea.fotoDespuesUrl)
+                        .placeholder(R.drawable.camera_icon)
+                        .error(R.drawable.error_placeholder)
+                        .into(binding.imgRespuesta)
+                } else {
+                    // Si no hay foto después, se oculta o se pone un placeholder, pero la visibilidad ya está en VISIBLE arriba
+                    binding.imgRespuesta.setImageResource(R.drawable.camera_icon)
+                }
 
                 // Los admins aún pueden editar o eliminar tareas realizadas
-                binding.btnEditarTarea.visibility = if (esAdmin) ViewGroup.VISIBLE else ViewGroup.GONE
-                binding.btnEliminarTarea.visibility = if (esAdmin) ViewGroup.VISIBLE else ViewGroup.GONE
+                binding.btnEditarTarea.visibility = if (esAdmin) View.VISIBLE else View.GONE
+                binding.btnEliminarTarea.visibility = if (esAdmin) View.VISIBLE else View.GONE
             }
-            // Agrega otros estados si los tienes (ej: "Asignada" sin ser Pendiente)
+            // Agrega otros estados si los tienes (ej: "Rechazada")
             else -> {
                 // Estado por defecto
             }
         }
 
-        // 3. LISTENERS DE CLIC (Botones y Foto)
+        // 3. LISTENERS DE CLIC (Fotos Individuales para Galería)
 
-        // 3.1. Click en la Imagen para ver a Pantalla Completa (Lógica de Swipe/Doble Foto)
-
-        val imageViewClickeable = if (tarea.estado == "Realizada") binding.imgRespuesta else binding.imgTarea
-
-        imageViewClickeable.setOnClickListener {
-
-            val urls = ArrayList<String>()
-            val fotoAntes = tarea.fotoAntesUrl
-            val fotoDespues = tarea.fotoDespuesUrl
-
-            if (tarea.estado == "Realizada") {
-                // Si está Realizada, el orden es: 1. Después, 2. Antes (si existe)
-                if (!fotoDespues.isNullOrEmpty()) {
-                    urls.add(fotoDespues)
-                }
-                if (!fotoAntes.isNullOrEmpty() && fotoAntes != fotoDespues) {
-                    urls.add(fotoAntes)
-                }
-            } else {
-                // Si está Pendiente, solo se muestra la foto Antes
-                if (!fotoAntes.isNullOrEmpty()) {
-                    urls.add(fotoAntes)
-                }
-            }
-
-            if (urls.isNotEmpty()) {
+        // Función auxiliar para abrir la galería con la URL específica
+        fun abrirVisualizador(url: String?) {
+            if (!url.isNullOrEmpty()) {
                 val intent = Intent(context, VisualizadorImagenActivity::class.java).apply {
-                    // Usamos la clave para el ViewPager2/Array de URLs
-                    putStringArrayListExtra(VisualizadorImagenActivity.EXTRA_IMAGE_URLS, urls)
+                    putStringArrayListExtra(VisualizadorImagenActivity.EXTRA_IMAGE_URLS, arrayListOf(url))
                 }
                 context.startActivity(intent)
             } else {
@@ -147,9 +146,22 @@ class TareaAdapter(
             }
         }
 
+        // Listener para la foto ANTES (imgTarea)
+        binding.imgTarea.setOnClickListener {
+            abrirVisualizador(tarea.fotoAntesUrl)
+        }
+
+        // Listener para la foto DESPUÉS (imgRespuesta)
+        binding.imgRespuesta.setOnClickListener {
+            if (tarea.estado == "Realizada") {
+                abrirVisualizador(tarea.fotoDespuesUrl)
+            } else {
+                Toast.makeText(context, "Aún no hay foto de respuesta", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         // 3.2. Botones de Acción
         binding.btnResponderFoto.setOnClickListener {
-            // ESTO DELEGA LA ACCIÓN A LA ACTIVITY
             onResponderClick(tarea)
         }
 

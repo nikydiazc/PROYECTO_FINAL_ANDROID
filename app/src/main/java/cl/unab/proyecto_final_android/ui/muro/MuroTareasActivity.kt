@@ -44,9 +44,9 @@ class MuroTareasActivity : AppCompatActivity() {
     private var tareaEnRespuesta: Tarea? = null
     private var fotoRespuestaUri: Uri? = null
 
-    // -------------------- LAUNCHERS (DEBE ESTAR EN LA ACTIVITY) --------------------
+    // ------------- LAUNCHERS ----------------
 
-    // LAUNCHER 1: Solicitud de Permiso de la Cámara (Resuelve el SecurityException)
+    // LAUNCHER 1: Solicitud de Permiso de la Cámara
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted) {
@@ -76,7 +76,7 @@ class MuroTareasActivity : AppCompatActivity() {
             }
         }
 
-    // -------------------- CICLO DE VIDA --------------------
+    // --------- CICLO DE VIDA -----------
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,10 +89,10 @@ class MuroTareasActivity : AppCompatActivity() {
         val repo = TareaRepository(FirebaseFirestore.getInstance(), FirebaseStorage.getInstance())
         val factory = TareasViewModelFactory(repo, esAdmin, usernameActual)
 
-        // ¡IMPORTANTE! El ViewModel debe inicializarse antes de ser usado.
+        // El ViewModel debe inicializarse antes de ser usado.
         viewModel = ViewModelProvider(this, factory)[TareasViewModel::class.java]
 
-        // 💡 Corrección: FiltroFechaManager utiliza el viewModel, por lo que debe inicializarse después.
+        // FiltroFechaManager utiliza el viewModel, por lo que debe inicializarse después.
         FiltroFechaManager(this, binding, viewModel)
 
 
@@ -122,7 +122,7 @@ class MuroTareasActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // 🟢 ENFOQUE: Recargar la lista garantiza que los datos estén frescos.
+        //Recargar la lista garantiza que los datos estén frescos.
         viewModel.cargarTareas()
     }
 
@@ -204,7 +204,7 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
-    // ------- OBSERVER ---------
+    // -----OBSERVER ------
 
     private fun observarViewModel() {
         viewModel.uiState.observe(this) { state ->

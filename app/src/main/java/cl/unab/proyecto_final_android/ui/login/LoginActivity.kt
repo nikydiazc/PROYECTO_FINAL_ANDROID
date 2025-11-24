@@ -33,13 +33,12 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun configurarEventos() {
-        // CORRECCIÓN CRÍTICA: Usar el ID correcto del botón del XML
+        //Usar el ID correcto del botón del XML
         binding.btnIngresar.setOnClickListener {
             hacerLogin()
         }
     }
 
-    // LoginActivity.kt (Modificación en hacerLogin)
     private fun hacerLogin() {
         val usuarioIngresado = binding.etCorreo.text.toString().trim()
         val contrasenaIngresada = binding.etContrasena.text.toString().trim()
