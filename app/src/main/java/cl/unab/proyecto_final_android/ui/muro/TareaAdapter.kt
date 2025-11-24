@@ -113,9 +113,6 @@ class TareaAdapter(
 
         // 3.1. Click en la Imagen para ver a Pantalla Completa (Lógica de Swipe/Doble Foto)
 
-        // Determinamos qué ImageView detectará el clic:
-        // Si está Realizada: la foto de Respuesta (Despues).
-        // Si está Pendiente: la foto de Referencia (Antes).
         val imageViewClickeable = if (tarea.estado == "Realizada") binding.imgRespuesta else binding.imgTarea
 
         imageViewClickeable.setOnClickListener {
@@ -152,6 +149,7 @@ class TareaAdapter(
 
         // 3.2. Botones de Acción
         binding.btnResponderFoto.setOnClickListener {
+            // ESTO DELEGA LA ACCIÓN A LA ACTIVITY
             onResponderClick(tarea)
         }
 

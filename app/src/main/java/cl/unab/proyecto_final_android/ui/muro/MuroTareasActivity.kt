@@ -1,18 +1,21 @@
 package cl.unab.proyecto_final_android.ui.muro
 
+import android.Manifest
 import android.app.DatePickerDialog
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.Spinner
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
@@ -33,12 +36,9 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import java.io.File
-import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
-import android.widget.Spinner
 
 class MuroTareasActivity : AppCompatActivity() {
 
@@ -46,27 +46,28 @@ class MuroTareasActivity : AppCompatActivity() {
     private lateinit var viewModel: TareasViewModel
     private lateinit var adapter: TareaAdapter
 
-    // Variables para el filtro de fecha
-    private var fechaSeleccionadaDesde: Calendar? = null
-    private var fechaSeleccionadaHasta: Calendar? = null
-
+    // Variables de Estado y Usuario
     private var rolUsuario: String = LoginActivity.ROL_REALIZAR
     private var usernameActual: String = ""
-
     private val esAdmin: Boolean
         get() = usernameActual.equals("administrador", ignoreCase = true) ||
                 usernameActual.equals("administrador@miapp.com", ignoreCase = true)
 
-    // Para responder con foto
-    private var tareaSeleccionadaParaRespuesta: Tarea? = null
-    private var currentPhotoPathRespuesta: String? = null
-    private val REQUEST_FOTO_RESPUESTA = 2001
+    // Variables de Filtro de Fecha
+    private var fechaSeleccionadaDesde: Calendar? = null
+    private var fechaSeleccionadaHasta: Calendar? = null
+
+    // Variables para la respuesta de Tarea (API Moderna)
+    private var tareaEnRespuesta: Tarea? = null
+    private var fotoRespuestaUri: Uri? = null
 
     data class SupervisorUsuario(
         val nombreVisible: String,
         val username: String
     )
 
+
+    // Lista de Supervisores (Mantenida por el usuario)
     private val listaSupervisores = listOf(
         SupervisorUsuario("Delfina Cabello (Poniente)", "delfina.cabello"),
         SupervisorUsuario("Rodrigo Reyes (Poniente)", "rodrigo.reyes"),
@@ -78,6 +79,47 @@ class MuroTareasActivity : AppCompatActivity() {
         SupervisorUsuario("Libia Florez (Oriente)", "libia.florez"),
         SupervisorUsuario("Jorge Geisbuhler (Oriente)", "jorge.geisbuhler")
     )
+
+
+    // LANZADOR DE ACTIVIDAD PARA LA CÁMARA (API MODERNA)
+    private val camaraLauncher =
+        registerForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
+
+            // Copiar las propiedades mutables a variables locales inmutables para seguridad
+            val uriTomada = fotoRespuestaUri
+            val tareaEnCurso = tareaEnRespuesta
+
+            if (success && uriTomada != null && tareaEnCurso != null) {
+                // Éxito: Llamar a la función que sube la foto a Firebase
+                iniciarProcesoDeRespuesta(tareaEnCurso, uriTomada)
+            } else {
+                // Cancelado, falló la cámara, o las referencias son nulas
+                Toast.makeText(this, "Captura de foto cancelada o fallida.", Toast.LENGTH_SHORT).show()
+
+                // Limpiar referencias al terminar
+                tareaEnRespuesta = null
+                fotoRespuestaUri = null
+            }
+        }
+
+    // Define el launcher para solicitar el permiso de la cámara
+    private val cameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                // Permiso concedido, ahora podemos iniciar la cámara.
+                // Necesitas guardar la tarea actual en una variable de clase temporal
+                // antes de solicitar el permiso. Usaremos 'tareaEnRespuesta' para esto.
+                val tareaParaLanzar = tareaEnRespuesta
+                if (tareaParaLanzar != null) {
+                    // Llamamos a la función real de la cámara
+                    lanzarCamaraDespuesDePermiso(tareaParaLanzar)
+                }
+            } else {
+                // Permiso denegado, notificar al usuario.
+                Toast.makeText(this, "El permiso de la cámara es necesario para responder.", Toast.LENGTH_LONG).show()
+                tareaEnRespuesta = null // Limpiar la referencia de la tarea
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -114,43 +156,48 @@ class MuroTareasActivity : AppCompatActivity() {
         actualizarVisibilidadFiltros(ModoMuro.PENDIENTES)
     }
 
-    // -------------------- CONFIGURACIÓN UI --------------------
-
-// MuroTareasActivity.kt
+    // -------------------- CONFIGURACIÓN UI & ADAPTADOR --------------------
 
     private fun configurarRecyclerView() {
         adapter = TareaAdapter(
-            // Asegúrate de usar la propiedad 'esAdmin' en el adaptador si la implementaste
             tareas = emptyList(),
             esAdmin = esAdmin,
             usernameActual = usernameActual,
 
+            // LÓGICA DE RESPUESTA DE TAREA (Usa la API Moderna)
             onResponderClick = { tarea ->
-                if (!tarea.estado.equals("Pendiente", ignoreCase = true)) {
-                    Toast.makeText(this, "Solo se pueden responder las tareas pendientes", Toast.LENGTH_SHORT).show()
-                    // Ya no necesitamos 'return@TareaAdapter' aquí
+                if (tarea.estado.equals("Realizada", ignoreCase = true) || tarea.estado.equals("Rechazada", ignoreCase = true)) {
+                    Toast.makeText(
+                        this,
+                        "Solo se pueden responder las tareas Pendientes o Asignadas",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
-                    tareaSeleccionadaParaRespuesta = tarea
-                    abrirCamaraParaRespuesta()
+                    // Llama a la nueva función que inicia la cámara
+                    iniciarTomaDeFoto(tarea)
                 }
             },
 
             onEditarClick = { tarea ->
                 if (!esAdmin) {
-                    Toast.makeText(this, "Solo el administrador puede editar tareas", Toast.LENGTH_SHORT).show()
-                    // Ya no necesitamos 'return@TareaAdapter' aquí
+                    Toast.makeText(
+                        this,
+                        "Solo el administrador puede editar tareas",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
-                    // Función para mostrar el diálogo de edición (debes implementarla)
                     mostrarDialogoEditarTarea(tarea)
                 }
             },
 
             onEliminarClick = { tarea ->
                 if (!esAdmin) {
-                    Toast.makeText(this, "Solo el administrador puede eliminar tareas", Toast.LENGTH_SHORT).show()
-                    // Ya no necesitamos 'return@TareaAdapter' aquí
+                    Toast.makeText(
+                        this,
+                        "Solo el administrador puede eliminar tareas",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
-                    // ⚠️ CAMBIADO: Llamar a la función de confirmación de ELIMINACIÓN
                     confirmarEliminacionTarea(tarea)
                 }
             }
@@ -162,7 +209,7 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
-// ------------ LÓGICA DE ELIMINACIÓN ----------
+    // -------------------- LÓGICA DE ELIMINACIÓN --------------------
 
     private fun confirmarEliminacionTarea(tarea: Tarea) {
         AlertDialog.Builder(this)
@@ -176,32 +223,18 @@ class MuroTareasActivity : AppCompatActivity() {
     }
 
     private fun eliminarTareaEnFirestore(tarea: Tarea) {
-        // ⚠️ CORRECCIÓN CRÍTICA: Usamos el viewModel para delegar la tarea de eliminación.
-
-        // Opcional: Mostrar ProgressBar
-        // binding.progressBarMuro.visibility = View.VISIBLE
-
-        // Llama al método del ViewModel para eliminar la tarea
         viewModel.eliminarTarea(tarea) { ok, error ->
-            // Ocultar ProgressBar
-            // binding.progressBarMuro.visibility = View.GONE
-
             if (ok) {
                 Toast.makeText(this, "Tarea eliminada con éxito.", Toast.LENGTH_SHORT).show()
-                // El viewModel se encargará de recargar/actualizar la lista automáticamente
-                // a través del LiveData, por lo que NO necesitamos llamar a cargarTareas()
             } else {
                 Toast.makeText(this, "Error al eliminar: ${error}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
-// -------------------- LÓGICA DE DATOS (Delegada al ViewModel) --------------------
+    // -------------------- LÓGICA DE DATOS Y SPINNERS --------------------
 
-    // ⚠️ ADICIONAL: Ya que usas LiveData/uiState en observarViewModel(),
-// la función cargarTareas() debe ser muy simple y solo llamar al ViewModel.
     private fun cargarTareas() {
-        // Llama al método del ViewModel para iniciar la carga de datos
         viewModel.cargarTareas()
     }
 
@@ -215,10 +248,16 @@ class MuroTareasActivity : AppCompatActivity() {
         binding.spFiltroPiso.adapter = adapterPiso
 
         binding.spFiltroPiso.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
                 val pisoSeleccionado = parent?.getItemAtPosition(position).toString()
                 viewModel.cambiarPiso(pisoSeleccionado)
             }
+
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
@@ -231,14 +270,22 @@ class MuroTareasActivity : AppCompatActivity() {
         adapterSup.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spFiltroSupervisor.adapter = adapterSup
 
-        binding.spFiltroSupervisor.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (!esAdmin) return
-                val usernameSupervisor = if (position == 0) null else listaSupervisores[position - 1].username
-                viewModel.cambiarSupervisor(usernameSupervisor)
+        binding.spFiltroSupervisor.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    if (!esAdmin) return
+                    val usernameSupervisor =
+                        if (position == 0) null else listaSupervisores[position - 1].username
+                    viewModel.cambiarSupervisor(usernameSupervisor)
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
     }
 
     private fun configurarEventosUI() {
@@ -253,6 +300,7 @@ class MuroTareasActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 viewModel.actualizarBusqueda(s?.toString().orEmpty())
             }
+
             override fun afterTextChanged(s: Editable?) {}
         })
     }
@@ -303,19 +351,27 @@ class MuroTareasActivity : AppCompatActivity() {
         val fechaInicial = if (esFechaDesde) fechaSeleccionadaDesde else fechaSeleccionadaHasta
         fechaInicial?.let { calendario.timeInMillis = it.timeInMillis }
 
-        val picker = DatePickerDialog(this, { _, year, month, day ->
-            val nuevaFecha = Calendar.getInstance()
-            nuevaFecha.set(year, month, day, 0, 0, 0)
-            nuevaFecha.set(Calendar.MILLISECOND, 0)
+        val picker = DatePickerDialog(
+            this,
+            { _, year, month, day ->
+                val nuevaFecha = Calendar.getInstance()
+                nuevaFecha.set(year, month, day, 0, 0, 0)
+                nuevaFecha.set(Calendar.MILLISECOND, 0)
 
-            if (esFechaDesde) {
-                fechaSeleccionadaDesde = nuevaFecha
-                binding.tvFechaDesde.text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(nuevaFecha.time)
-            } else {
-                fechaSeleccionadaHasta = nuevaFecha
-                binding.tvFechaHasta.text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(nuevaFecha.time)
-            }
-        }, calendario.get(Calendar.YEAR), calendario.get(Calendar.MONTH), calendario.get(Calendar.DAY_OF_MONTH))
+                if (esFechaDesde) {
+                    fechaSeleccionadaDesde = nuevaFecha
+                    binding.tvFechaDesde.text =
+                        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(nuevaFecha.time)
+                } else {
+                    fechaSeleccionadaHasta = nuevaFecha
+                    binding.tvFechaHasta.text =
+                        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(nuevaFecha.time)
+                }
+            },
+            calendario.get(Calendar.YEAR),
+            calendario.get(Calendar.MONTH),
+            calendario.get(Calendar.DAY_OF_MONTH)
+        )
 
         picker.show()
     }
@@ -368,8 +424,6 @@ class MuroTareasActivity : AppCompatActivity() {
 
     // -------------------- BOTTOM NAV & OBSERVERS --------------------
 
-// MuroTareasActivity.kt
-
     private fun configurarBottomNav() {
         binding.bottomNav.selectedItemId = R.id.nav_muro_tareas
         binding.bottomNav.setOnItemSelectedListener { item ->
@@ -382,43 +436,36 @@ class MuroTareasActivity : AppCompatActivity() {
                     })
                     true
                 }
+
                 R.id.nav_muro_tareas -> {
                     // Permanece en esta Activity
                     true
                 }
-                R.id.nav_usuario -> {
-                    // ABRIR DIÁLOGO DE CERRAR SESIÓN (NUEVA LÓGICA)
-                    mostrarDialogoCerrarSesion()
 
-                    // IMPORTANTE: Devolvemos 'false' para que el ícono no se quede seleccionado
-                    // si el usuario presiona "Cancelar" en el diálogo.
+                R.id.nav_usuario -> {
+                    // ABRIR DIÁLOGO DE CERRAR SESIÓN
+                    mostrarDialogoCerrarSesion()
                     false
                 }
+
                 else -> false
             }
         }
     }
-
-    // MuroTareasActivity.kt
 
     private fun mostrarDialogoCerrarSesion() {
         AlertDialog.Builder(this)
             .setTitle("Cerrar Sesión")
             .setMessage("¿Estás seguro que deseas cerrar tu sesión actual?")
             .setPositiveButton("Cerrar Sesión") { dialog, which ->
-                // Cierra la sesión y redirige al Login
                 cerrarSesionYRedirigir()
             }
-            .setNegativeButton("Cancelar", null) // Simplemente cierra el diálogo
+            .setNegativeButton("Cancelar", null)
             .show()
     }
 
     private fun cerrarSesionYRedirigir() {
-        // 1. Aquí se pueden agregar pasos como firebaseAuth.signOut() si usas autenticación.
-        // Por ahora, solo limpiamos el historial de navegación.
-
         val intent = Intent(this, LoginActivity::class.java).apply {
-            // Flags para limpiar el stack de actividades
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         startActivity(intent)
@@ -430,34 +477,47 @@ class MuroTareasActivity : AppCompatActivity() {
             // 1. Mostrar/Ocultar ProgressBar
             binding.progressBarMuro.visibility = if (state.cargando) View.VISIBLE else View.GONE
 
-            // 2. CORRECCIÓN: Usar el método correcto definido en TareaAdapter
+            // 2. Usar el método correcto definido en TareaAdapter
             adapter.actualizarTareas(state.tareas)
 
             // 3. Mostrar errores
             state.error?.let { Toast.makeText(this, it, Toast.LENGTH_SHORT).show() }
         }
     }
+
     private fun marcarBotonActivo(botonActivo: Button) {
-        val botones = listOf(binding.btnTareasPendientes, binding.btnTareasAsignadas, binding.btnTareasRealizadas)
+        val botones = listOf(
+            binding.btnTareasPendientes,
+            binding.btnTareasAsignadas,
+            binding.btnTareasRealizadas
+        )
         botones.forEach { btn ->
             btn.alpha = if (btn == botonActivo) 1f else 0.5f
             btn.setTextColor(ContextCompat.getColor(this, R.color.white))
         }
     }
 
-    // -------------------- ACCIONES (Swipe, Edit, Delete) --------------------
+    // -------------------- ACCIONES (Swipe, Edit, Delete, Assign) --------------------
 
     private fun configurarSwipeConRol() {
-        val callback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
-            override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean = false
+        val callback = object :
+            ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+            override fun onMove(
+                rv: RecyclerView,
+                vh: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean = false
+
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.bindingAdapterPosition
-
-                // 💡 AHORA FUNCIONA: Llama al método que acabamos de agregar al adaptador.
                 val tarea = adapter.obtenerTareaEnPosicion(position) ?: return
 
                 if (!esAdmin) {
-                    Toast.makeText(this@MuroTareasActivity, "Solo el administrador puede gestionar tareas", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@MuroTareasActivity,
+                        "Solo el administrador puede gestionar tareas",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     adapter.notifyItemChanged(position)
                     return
                 }
@@ -465,8 +525,6 @@ class MuroTareasActivity : AppCompatActivity() {
                 if (direction == ItemTouchHelper.LEFT) confirmarRechazoTarea(tarea, position)
                 else mostrarDialogoAsignarSupervisor(tarea)
 
-                // ⚠️ Nota: Es común que esta línea se mueva dentro de los callbacks del diálogo
-                // para que la interfaz se actualice SOLO si el usuario cancela la acción.
                 adapter.notifyItemChanged(position)
             }
         }
@@ -494,7 +552,11 @@ class MuroTareasActivity : AppCompatActivity() {
             .setItems(nombres) { _, which ->
                 val sup = listaSupervisores[which]
                 viewModel.asignarTarea(tarea, sup.username) { ok, _ ->
-                    if (ok) Toast.makeText(this, "Asignada a ${sup.nombreVisible}", Toast.LENGTH_SHORT).show()
+                    if (ok) Toast.makeText(
+                        this,
+                        "Asignada a ${sup.nombreVisible}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
             .show()
@@ -521,7 +583,12 @@ class MuroTareasActivity : AppCompatActivity() {
             .setTitle("Editar tarea")
             .setView(view)
             .setPositiveButton("Guardar") { _, _ ->
-                viewModel.editarTarea(tarea, etDesc.text.toString(), etUbi.text.toString(), spPiso.selectedItem.toString()) { ok, _ ->
+                viewModel.editarTarea(
+                    tarea,
+                    etDesc.text.toString(),
+                    etUbi.text.toString(),
+                    spPiso.selectedItem.toString()
+                ) { ok, _ ->
                     if (ok) Toast.makeText(this, "Actualizada", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -529,48 +596,98 @@ class MuroTareasActivity : AppCompatActivity() {
             .show()
     }
 
-    // -------------------- CÁMARA / RESPUESTA --------------------
+    // ------------ CÁMARA-----------
 
-    private fun abrirCamaraParaRespuesta() {
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        if (intent.resolveActivity(packageManager) == null) return
+    // Función que se llama cuando el usuario presiona el botón "Responder con Foto"
+// Función que se llama cuando el usuario presiona el botón "Responder con Foto"
+    private fun iniciarTomaDeFoto(tarea: Tarea) {
+        // 1. Guardar la referencia de la tarea
+        tareaEnRespuesta = tarea
 
+        // 2. Generar la URI y asignarla a la propiedad de la clase
+        fotoRespuestaUri = crearUriDeArchivoTemporal()
+
+        // 3. COPIA SEGURA: Copiar el valor a una variable local inmutable (val)
+        val uriParaLanzar = fotoRespuestaUri
+
+        // 4. Comprobación de nulidad usando la variable local
+        if (uriParaLanzar != null) {
+            // 5. Lanzar la cámara, Kotlin sabe que 'uriParaLanzar' es seguro (no nulo)
+            camaraLauncher.launch(uriParaLanzar)
+        } else {
+            Toast.makeText(this, "Error al preparar el archivo de foto.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Función auxiliar para crear la URI temporal
+    private fun crearUriDeArchivoTemporal(): Uri? {
         try {
-            val photoFile = crearArchivoImagenRespuesta()
-            val photoURI = FileProvider.getUriForFile(this, "${applicationContext.packageName}.provider", photoFile)
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-            startActivityForResult(intent, REQUEST_FOTO_RESPUESTA)
+            // Usamos requireContext() o la propiedad 'this' (si estás en una Activity)
+            // para obtener el directorio de almacenamiento privado de la app.
+            // Usamos el operador Elvis (?: return null) en lugar de !! para evitar crasheos.
+            val storageDir: File = applicationContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+                ?: return null // Si es nulo, salimos.
+
+            // 2. Crear un archivo temporal único
+            val imagenTemporal = File.createTempFile(
+                "RESPUESTA_${tareaEnRespuesta?.id ?: "TEMP"}_",
+                ".jpg",
+                storageDir
+            )
+
+            // 3. Obtener la URI usando FileProvider
+            return FileProvider.getUriForFile(
+                applicationContext,
+                // Debe coincidir con tu AndroidManifest.xml
+                "${applicationContext.packageName}.fileprovider",
+                imagenTemporal
+            )
         } catch (e: Exception) {
-            Toast.makeText(this, "Error cámara", Toast.LENGTH_SHORT).show()
+            // La excepción ahora capturará problemas como permisos de disco.
+            e.printStackTrace()
+            Toast.makeText(this, "Error de Sistema al crear archivo: ${e.message}", Toast.LENGTH_LONG).show()
+            return null
         }
     }
 
-    private fun crearArchivoImagenRespuesta(): File {
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        return File.createTempFile("RESP_${timeStamp}_", ".jpg", storageDir).apply { currentPhotoPathRespuesta = absolutePath }
-    }
+    // Función que delega al ViewModel (se llama desde el launcher)
+    private fun iniciarProcesoDeRespuesta(tarea: Tarea, uri: Uri) {
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_FOTO_RESPUESTA && resultCode == RESULT_OK) {
-            val path = currentPhotoPathRespuesta
-            val tarea = tareaSeleccionadaParaRespuesta
-            if (path != null && tarea != null) mostrarDialogoComentarioRespuesta(tarea, path)
-        }
-    }
+        Toast.makeText(this, "Iniciando subida de foto para la tarea: ${tarea.descripcion}", Toast.LENGTH_SHORT).show()
 
-    private fun mostrarDialogoComentarioRespuesta(tarea: Tarea, path: String) {
-        val input = AppCompatEditText(this).apply { hint = "Comentario (opcional)" }
-        AlertDialog.Builder(this)
-            .setTitle("Finalizar Tarea")
-            .setView(input)
-            .setPositiveButton("Enviar") { _, _ ->
-                viewModel.guardarRespuesta(tarea, path, input.text.toString()) { ok, _ ->
-                    if (ok) Toast.makeText(this, "Tarea realizada", Toast.LENGTH_SHORT).show()
-                }
+        // Llama al ViewModel para manejar la lógica de negocio
+        viewModel.subirFotoDeRespuesta(tarea, uri) { exito, error ->
+            if (exito) {
+                Toast.makeText(this, "Tarea realizada con éxito.", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "Error al subir/actualizar tarea: ${error ?: "Desconocido"}", Toast.LENGTH_LONG).show()
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+
+            // Limpiar referencias al terminar SIEMPRE
+            tareaEnRespuesta = null
+            fotoRespuestaUri = null
+        }
     }
+    // Esta función debe llamarse desde el botón "Responder" del adaptador:
+    private fun intentarTomarFoto(tarea: Tarea) {
+        // 1. Guardar la tarea temporalmente antes de la solicitud de permiso
+        tareaEnRespuesta = tarea
+
+        // 2. Comprobar el permiso de la cámara
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            // Permiso ya concedido, lanzar la cámara directamente
+            lanzarCamaraDespuesDePermiso(tarea)
+        } else {
+            // Permiso no concedido, solicitarlo al usuario
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    // 3. Función auxiliar que llama a la lógica original de la cámara (la que ya corregimos)
+    private fun lanzarCamaraDespuesDePermiso(tarea: Tarea) {
+        // Aquí es donde se llama a la función que crea la URI y lanza la cámara
+        // NOTA: Esta función es la que antes llamabas iniciarTomaDeFoto
+        iniciarTomaDeFoto(tarea)
+    }
+
 }
