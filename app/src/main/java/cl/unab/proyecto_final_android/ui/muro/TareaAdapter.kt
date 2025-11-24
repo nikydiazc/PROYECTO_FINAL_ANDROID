@@ -1,191 +1,190 @@
 package cl.unab.proyecto_final_android.ui.muro
 
+import android.content.Intent
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.TextView
-import androidx.core.content.ContextCompat
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import cl.unab.proyecto_final_android.R
 import cl.unab.proyecto_final_android.Tarea
+import cl.unab.proyecto_final_android.VisualizadorImagenActivity
+import cl.unab.proyecto_final_android.databinding.ItemTareaBinding
 import com.bumptech.glide.Glide
-import cl.unab.proyecto_final_android.ui.login.LoginActivity
+import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class TareaAdapter(
     private var tareas: List<Tarea>,
-    private val rolUsuario: String,
+    private val esAdmin: Boolean,
+    private val usernameActual: String,
+    // Definimos interfaces para manejar los clics de botones fuera del Adapter
     private val onResponderClick: (Tarea) -> Unit,
     private val onEditarClick: (Tarea) -> Unit,
     private val onEliminarClick: (Tarea) -> Unit
 ) : RecyclerView.Adapter<TareaAdapter.TareaViewHolder>() {
 
-    // Mapa username -> nombre visible bonito
-    private val mapaSupervisores = mapOf(
-        "delfina.cabello" to "Delfina Cabello (Poniente)",
-        "rodrigo.reyes" to "Rodrigo Reyes (Poniente)",
-        "maria.caruajulca" to "Maria Caruajulca (Poniente)",
-        "cristian.vergara" to "Cristian Vergara (Poniente)",
-        "enrique.mendez" to "Enrique Mendez (Poniente)",
-        "norma.marican" to "Norma Marican (Poniente)",
-        "john.vilchez" to "John Vilchez (Oriente)",
-        "libia.florez" to "Libia Florez (Oriente)",
-        "jorge.geisbuhler" to "Jorge Geisbuhler (Oriente)"
-    )
+    // Helper para formatear la fecha
+    private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
-    // Se usa el SimpleDateFormat
-    private val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-
-    inner class TareaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val imgAntes: ImageView = itemView.findViewById(R.id.imgTarea)
-        val imgDespues: ImageView = itemView.findViewById(R.id.imgRespuesta)
-
-        val tvDescripcion: TextView = itemView.findViewById(R.id.tvDescripcionTarea)
-        val tvUbicacion: TextView = itemView.findViewById(R.id.tvUbicacionTarea)
-        val tvPiso: TextView = itemView.findViewById(R.id.tvPisoValor)
-        val tvFechaCreacion: TextView = itemView.findViewById(R.id.tvFechaCreacion)
-        val tvFechaRespuesta: TextView = itemView.findViewById(R.id.tvFechaRespuesta)
-        val tvEstado: TextView = itemView.findViewById(R.id.tvEstadoTarea)
-        val tvAsignadaA: TextView = itemView.findViewById(R.id.tvAsignadaA)
-
-        val btnResponderFoto: Button = itemView.findViewById(R.id.btnResponderFoto)
-        val btnEditarTarea: ImageButton = itemView.findViewById(R.id.btnEditarTarea)
-        val btnEliminarTarea: ImageButton = itemView.findViewById(R.id.btnEliminarTarea)
-    }
+    // Clase interna ViewHolder
+    inner class TareaViewHolder(val binding: ItemTareaBinding) : RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TareaViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_tarea, parent, false)
-        return TareaViewHolder(view)
+        val binding = ItemTareaBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        return TareaViewHolder(binding)
     }
 
     override fun getItemCount(): Int = tareas.size
 
-    fun actualizarLista(nuevaLista: List<Tarea>) {
-        tareas = nuevaLista
+    override fun onBindViewHolder(holder: TareaViewHolder, position: Int) {
+        val tarea = tareas[position]
+        val binding = holder.binding
+        val context = holder.itemView.context // Contexto para iniciar Activities/Toasts
+
+        // 1. POBLAR DATOS GENERALES
+        binding.tvDescripcionTarea.text = tarea.descripcion
+        binding.tvUbicacionTarea.text = "Ubicación: ${tarea.ubicacion}"
+        binding.tvPisoValor.text = "Piso: ${tarea.piso}"
+        binding.tvAsignadaA.text = "Asignada a: ${if (tarea.asignadaA.isNullOrEmpty()) "—" else tarea.asignadaA}"
+
+        // Formatear Fechas
+        binding.tvFechaCreacion.text = "Creada: ${formatearTimestamp(tarea.fechaCreacion)}"
+
+        // Determinar qué ImageView usaremos para la imagen de referencia (Antes)
+        val imgReferencia = binding.imgTarea
+
+        // 2. LÓGICA DE ESTADO (PENDIENTES, ASIGNADAS, REALIZADAS)
+        when (tarea.estado) {
+            "Pendiente" -> {
+                binding.tvEstadoTarea.text = "Estado: Pendiente"
+                binding.tvEstadoTarea.setTextColor(context.getColor(android.R.color.holo_red_dark))
+                binding.btnResponderFoto.visibility = if (tarea.asignadaA == usernameActual || esAdmin) ViewGroup.VISIBLE else ViewGroup.GONE
+
+                // Ocultar elementos de Realizada
+                binding.imgRespuesta.visibility = ViewGroup.GONE
+                binding.tvFechaRespuesta.visibility = ViewGroup.GONE
+
+                // Cargar Imagen ANTES
+                if (!tarea.fotoAntesUrl.isNullOrEmpty()) {
+                    Glide.with(context).load(tarea.fotoAntesUrl).into(imgReferencia)
+                } else {
+                    imgReferencia.setImageResource(R.drawable.camera_icon)
+                }
+
+                // Mostrar botones de Admin/Supervisor solo si es su tarea o es Admin
+                val showAdminButtons = esAdmin || tarea.asignadaA == usernameActual
+                binding.btnEditarTarea.visibility = if (showAdminButtons) ViewGroup.VISIBLE else ViewGroup.GONE
+                binding.btnEliminarTarea.visibility = if (showAdminButtons) ViewGroup.VISIBLE else ViewGroup.GONE
+            }
+            "Realizada" -> {
+                binding.tvEstadoTarea.text = "Estado: Realizada"
+                binding.tvEstadoTarea.setTextColor(context.getColor(android.R.color.holo_green_dark))
+                binding.btnResponderFoto.visibility = ViewGroup.GONE
+
+                // Mostrar elementos de Realizada
+                binding.imgRespuesta.visibility = ViewGroup.VISIBLE
+                binding.tvFechaRespuesta.visibility = ViewGroup.VISIBLE
+                binding.tvFechaRespuesta.text = "Realizada: ${formatearTimestamp(tarea.fechaRespuesta)}"
+
+                // Cargar Foto DESPUÉS (principal)
+                if (!tarea.fotoDespuesUrl.isNullOrEmpty()) {
+                    Glide.with(context).load(tarea.fotoDespuesUrl).into(binding.imgRespuesta)
+                }
+                // Asegurar que la imagen "antes" no se muestre doble o quede con datos antiguos
+                imgReferencia.setImageResource(android.R.color.transparent)
+
+                // Los admins aún pueden editar o eliminar tareas realizadas
+                binding.btnEditarTarea.visibility = if (esAdmin) ViewGroup.VISIBLE else ViewGroup.GONE
+                binding.btnEliminarTarea.visibility = if (esAdmin) ViewGroup.VISIBLE else ViewGroup.GONE
+            }
+            // Agrega otros estados si los tienes (ej: "Asignada" sin ser Pendiente)
+            else -> {
+                // Estado por defecto
+            }
+        }
+
+        // 3. LISTENERS DE CLIC (Botones y Foto)
+
+        // 3.1. Click en la Imagen para ver a Pantalla Completa (Lógica de Swipe/Doble Foto)
+
+        // Determinamos qué ImageView detectará el clic:
+        // Si está Realizada: la foto de Respuesta (Despues).
+        // Si está Pendiente: la foto de Referencia (Antes).
+        val imageViewClickeable = if (tarea.estado == "Realizada") binding.imgRespuesta else binding.imgTarea
+
+        imageViewClickeable.setOnClickListener {
+
+            val urls = ArrayList<String>()
+            val fotoAntes = tarea.fotoAntesUrl
+            val fotoDespues = tarea.fotoDespuesUrl
+
+            if (tarea.estado == "Realizada") {
+                // Si está Realizada, el orden es: 1. Después, 2. Antes (si existe)
+                if (!fotoDespues.isNullOrEmpty()) {
+                    urls.add(fotoDespues)
+                }
+                if (!fotoAntes.isNullOrEmpty() && fotoAntes != fotoDespues) {
+                    urls.add(fotoAntes)
+                }
+            } else {
+                // Si está Pendiente, solo se muestra la foto Antes
+                if (!fotoAntes.isNullOrEmpty()) {
+                    urls.add(fotoAntes)
+                }
+            }
+
+            if (urls.isNotEmpty()) {
+                val intent = Intent(context, VisualizadorImagenActivity::class.java).apply {
+                    // Usamos la clave para el ViewPager2/Array de URLs
+                    putStringArrayListExtra(VisualizadorImagenActivity.EXTRA_IMAGE_URLS, urls)
+                }
+                context.startActivity(intent)
+            } else {
+                Toast.makeText(context, "No hay foto disponible para mostrar", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 3.2. Botones de Acción
+        binding.btnResponderFoto.setOnClickListener {
+            onResponderClick(tarea)
+        }
+
+        binding.btnEditarTarea.setOnClickListener {
+            onEditarClick(tarea)
+        }
+
+        binding.btnEliminarTarea.setOnClickListener {
+            onEliminarClick(tarea)
+        }
+    }
+
+    // Función para actualizar la lista de tareas
+    fun actualizarTareas(nuevasTareas: List<Tarea>) {
+        this.tareas = nuevasTareas
         notifyDataSetChanged()
     }
 
-    fun obtenerTareaEnPosicion(position: Int): Tarea? =
-        if (position in tareas.indices) tareas[position] else null
-
-    override fun onBindViewHolder(holder: TareaViewHolder, position: Int) {
-        val tarea = tareas[position]
-        val context = holder.itemView.context
-
-        // ---------- Texto base ----------
-        holder.tvDescripcion.text = tarea.descripcion.ifBlank { "Sin descripción" }
-        holder.tvUbicacion.text = "Ubicación: ${tarea.ubicacion.ifBlank { "-" }}"
-        holder.tvPiso.text = "Piso ${tarea.piso.ifBlank { "-" }}"
-
-        // Fecha de creación
-        // CORRECCIÓN DE SINTAXIS: Uso de .toDate() en el objeto Timestamp
-        val fechaCreacionTexto = tarea.fechaCreacion?.let { timestamp ->
-            "Creada: ${sdf.format(timestamp.toDate())}"
-        } ?: "Creada: -"
-        holder.tvFechaCreacion.text = fechaCreacionTexto
-
-        // Fecha de respuesta (solo si existe)
-        if (tarea.fechaRespuesta != null) {
-            val fechaResp = tarea.fechaRespuesta.toDate()
-            holder.tvFechaRespuesta.visibility = View.VISIBLE
-            holder.tvFechaRespuesta.text = "Realizada: ${sdf.format(fechaResp)}"
+    // Función privada para formatear la marca de tiempo
+    private fun formatearTimestamp(timestamp: Timestamp?): String {
+        return if (timestamp != null) {
+            dateFormat.format(Date(timestamp.toDate().time))
         } else {
-            holder.tvFechaRespuesta.visibility = View.GONE
+            "—"
         }
+    }
 
-        // Estado (texto + color)
-        holder.tvEstado.text = "Estado: ${tarea.estado}"
-        val colorEstado = when (tarea.estado.lowercase()) {
-            "pendiente" -> ContextCompat.getColor(context, android.R.color.holo_red_dark)
-            "realizada" -> ContextCompat.getColor(context, android.R.color.holo_green_dark)
-            "en proceso" -> ContextCompat.getColor(context, android.R.color.holo_orange_dark)
-            else -> ContextCompat.getColor(context, android.R.color.white)
-        }
-        holder.tvEstado.setTextColor(colorEstado)
-
-        // Asignada a (nombre visible)
-        val textoAsignadaA = if (tarea.asignadaA.isBlank()) {
-            "Asignada a: -"
+    // Función requerida por MuroTareasActivity para el ItemTouchHelper (Swipe)
+    fun obtenerTareaEnPosicion(position: Int): Tarea? {
+        return if (position >= 0 && position < tareas.size) {
+            tareas[position]
         } else {
-            val nombreVisible = mapaSupervisores[tarea.asignadaA] ?: tarea.asignadaA
-            "Asignada a: $nombreVisible"
-        }
-        holder.tvAsignadaA.text = textoAsignadaA
-
-        // ---------- Imagen ANTES ----------
-        if (tarea.fotoAntesUrl.isNotBlank()) {
-            holder.imgAntes.setBackgroundColor(
-                ContextCompat.getColor(context, android.R.color.transparent)
-            )
-            Glide.with(context)
-                .load(tarea.fotoAntesUrl)
-                .placeholder(R.drawable.camera_icon)
-                .centerCrop()
-                .into(holder.imgAntes)
-        } else {
-            holder.imgAntes.setImageResource(R.drawable.camera_icon)
-        }
-
-        // ---------- Imagen DESPUÉS ----------
-        if (tarea.fotoDespuesUrl.isNotBlank()) {
-            holder.imgDespues.visibility = View.VISIBLE
-            Glide.with(context)
-                .load(tarea.fotoDespuesUrl)
-                .placeholder(R.drawable.camera_icon)
-                .centerCrop()
-                .into(holder.imgDespues)
-        } else {
-            holder.imgDespues.visibility = View.GONE
-        }
-
-        // ---------- Lógica botones según rol y estado ----------
-        val esRealizada = tarea.estado.equals("Realizada", ignoreCase = true)
-        val esPendiente = tarea.estado.equals("Pendiente", ignoreCase = true)
-
-        // BOTÓN RESPONDER:
-        // Solo si NO está realizada y el rol es ADMIN o REALIZAR
-        val puedeResponder = !esRealizada &&
-                (rolUsuario == LoginActivity.ROL_ADMIN || rolUsuario == LoginActivity.ROL_REALIZAR) &&
-                esPendiente
-
-        if (puedeResponder) {
-            holder.btnResponderFoto.visibility = View.VISIBLE
-            holder.btnResponderFoto.isEnabled = true
-            holder.btnResponderFoto.setOnClickListener {
-                onResponderClick(tarea)
-            }
-        } else {
-            holder.btnResponderFoto.visibility = View.GONE
-            holder.btnResponderFoto.setOnClickListener(null)
-        }
-
-        // BOTÓN EDITAR:
-        // Solo ADMIN y solo si NO está realizada
-        if (rolUsuario == LoginActivity.ROL_ADMIN && !esRealizada) {
-            holder.btnEditarTarea.visibility = View.VISIBLE
-            holder.btnEditarTarea.setOnClickListener {
-                onEditarClick(tarea)
-            }
-        } else {
-            holder.btnEditarTarea.visibility = View.GONE
-            holder.btnEditarTarea.setOnClickListener(null)
-        }
-
-        // BOTÓN ELIMINAR:
-        // Solo ADMIN, en cualquier estado
-        if (rolUsuario == LoginActivity.ROL_ADMIN) {
-            holder.btnEliminarTarea.visibility = View.VISIBLE
-            holder.btnEliminarTarea.setOnClickListener {
-                onEliminarClick(tarea)
-            }
-        } else {
-            holder.btnEliminarTarea.visibility = View.GONE
-            holder.btnEliminarTarea.setOnClickListener(null)
+            null
         }
     }
 }

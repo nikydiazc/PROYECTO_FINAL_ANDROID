@@ -22,7 +22,7 @@ data class TareasUiState(
 )
 
 class TareasViewModel(
-    private val repository: TareaRepository,
+    private val tareaRepository: TareaRepository,
     private val esAdmin: Boolean,
     private val usernameActual: String
 ) : ViewModel() {
@@ -46,7 +46,7 @@ class TareasViewModel(
         _uiState.value = state.copy(cargando = true, error = null)
 
         listener?.remove()
-        listener = repository.escucharTareas(
+        listener = tareaRepository.escucharTareas(
             modoMuro = state.modoMuro,
             esAdmin = esAdmin,
             usernameActual = usernameActual,
@@ -122,7 +122,7 @@ class TareasViewModel(
     fun rechazarTarea(tarea: Tarea, onResultado: (Boolean, String?) -> Unit) {
         if (tarea.id.isEmpty()) return
 
-        repository.eliminarTarea(tarea.id) { result ->
+        tareaRepository.eliminarTarea(tarea.id) { result ->
             result.onSuccess {
                 onResultado(true, null)
             }.onFailure { e ->
@@ -138,7 +138,7 @@ class TareasViewModel(
     ) {
         if (tarea.id.isEmpty()) return
 
-        repository.asignarTarea(tarea.id, usernameSupervisor) { result ->
+        tareaRepository.asignarTarea(tarea.id, usernameSupervisor) { result ->
             result.onSuccess { onResultado(true, null) }
                 .onFailure { e -> onResultado(false, e.message) }
         }
@@ -152,7 +152,7 @@ class TareasViewModel(
     ) {
         if (tarea.id.isEmpty()) return
 
-        repository.guardarRespuesta(tarea.id, localPhotoPath, comentario) { result ->
+        tareaRepository.guardarRespuesta(tarea.id, localPhotoPath, comentario) { result ->
             result.onSuccess { onResultado(true, null) }
                 .onFailure { e -> onResultado(false, e.message) }
         }
@@ -170,7 +170,7 @@ class TareasViewModel(
             return
         }
 
-        repository.actualizarCamposTarea(
+        tareaRepository.actualizarCamposTarea(
             tarea.id,
             nuevaDescripcion,
             nuevaUbicacion,
@@ -203,6 +203,32 @@ class TareasViewModel(
 
         // Recargamos la lista limpia
         cargarTareas()
+    }
+
+    fun eliminarTarea(tarea: Tarea, callback: (Boolean, String?) -> Unit) {
+        if (tarea.id.isEmpty()) {
+            callback(false, "ID de tarea inválido para eliminar.")
+            return
+        }
+
+        // 1. Mostrar estado de carga (opcional)
+        _uiState.value = _uiState.value?.copy(cargando = true)
+
+        // 2. Llamar a la función del repositorio usando el callback de Result<Unit>
+        tareaRepository.eliminarTarea(tarea.id) { result ->
+            // 3. Evaluar el resultado del repositorio
+            if (result.isSuccess) {
+                // Si tiene éxito: forzar la recarga y notificar
+                cargarTareas() // El ViewModel se encarga de actualizar la lista
+                callback(true, null)
+            } else {
+                // Si falla: mostrar error y detener la carga
+                val e = result.exceptionOrNull()
+                val errorMessage = "Error al eliminar la tarea: ${e?.message}"
+                _uiState.value = _uiState.value?.copy(error = errorMessage, cargando = false)
+                callback(false, errorMessage)
+            }
+        }
     }
 
 }

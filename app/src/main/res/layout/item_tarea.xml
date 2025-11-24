@@ -12,24 +12,23 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="15dp">
+        android:padding="15dp"
+        android:background="@color/gris2">
 
-        <!-- Foto ANTES -->
         <ImageView
             android:id="@+id/imgTarea"
             android:layout_width="130dp"
-            android:layout_height="220dp"
+            android:layout_height="180dp"
             android:background="@color/white"
             android:scaleType="centerInside"
             android:src="@drawable/camera_icon"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Foto DESPUÉS (solo en realizadas) -->
         <ImageView
             android:id="@+id/imgRespuesta"
-            android:layout_width="150dp"
-            android:layout_height="200dp"
+            android:layout_width="130dp"
+            android:layout_height="180dp"
             android:layout_marginTop="8dp"
             android:scaleType="centerCrop"
             android:src="@drawable/camera_icon"
@@ -38,13 +37,13 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/imgTarea" />
 
-        <!-- Descripción -->
         <TextView
             android:id="@+id/tvDescripcionTarea"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:gravity="center"
+            android:background="@drawable/cornertxtview2"
             android:text="Descripción de la tarea"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -52,7 +51,6 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/imgTarea" />
 
-        <!-- Ubicación -->
         <TextView
             android:id="@+id/tvUbicacionTarea"
             android:layout_width="0dp"
@@ -61,11 +59,12 @@
             android:layout_marginTop="8dp"
             android:text="Ubicación:"
             android:textSize="14sp"
+            android:gravity="center"
+            android:background="@drawable/cornertxtview2"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvDescripcionTarea" />
 
-        <!-- Piso -->
         <TextView
             android:id="@+id/tvPisoValor"
             android:layout_width="0dp"
@@ -74,11 +73,12 @@
             android:layout_marginTop="4dp"
             android:text="Piso 1"
             android:textSize="14sp"
+            android:gravity="center"
+            android:background="@drawable/cornertxtview2"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvUbicacionTarea" />
 
-        <!-- Fecha creación -->
         <TextView
             android:id="@+id/tvFechaCreacion"
             android:layout_width="0dp"
@@ -87,11 +87,12 @@
             android:layout_marginTop="4dp"
             android:text="Creada: 17/11/2025 14:35"
             android:textSize="12sp"
+            android:gravity="center"
+            android:background="@drawable/cornertxtview2"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvPisoValor" />
 
-        <!-- Fecha respuesta (solo realizadas) -->
         <TextView
             android:id="@+id/tvFechaRespuesta"
             android:layout_width="0dp"
@@ -101,24 +102,27 @@
             android:text="Realizada: 18/11/2025 10:12"
             android:textSize="12sp"
             android:visibility="gone"
+            android:background="@drawable/cornertxtview"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvFechaCreacion" />
 
-        <!-- Estado -->
         <TextView
             android:id="@+id/tvEstadoTarea"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_marginTop="8dp"
+            android:ems="10"
+            android:gravity="center"
+            android:background="@drawable/cornertxtview2"
             android:text="Estado: Pendiente"
             android:textColor="@android:color/holo_red_dark"
             android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
             app:layout_constraintTop_toBottomOf="@id/tvFechaRespuesta" />
 
-        <!--Supervisor asignado -->
         <TextView
             android:id="@+id/tvAsignadaA"
             android:layout_width="0dp"
@@ -127,51 +131,63 @@
             android:layout_marginTop="4dp"
             android:text="Asignada a: -"
             android:textSize="13sp"
+            android:gravity="center"
+            android:background="@drawable/cornertxtview2"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvEstadoTarea" />
 
-        <!-- Botón responder (con ícono de cámara) -->
         <Button
             android:id="@+id/btnResponderFoto"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:text="Responder"
             android:textSize="14sp"
             android:textColor="@color/white"
             android:backgroundTint="@color/verde"
-            android:drawableEnd="@drawable/ic_camera_small"
             app:layout_constraintStart_toEndOf="@id/imgTarea"
             app:layout_constraintTop_toBottomOf="@id/tvAsignadaA"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            />
 
         <ImageButton
             android:id="@+id/btnEditarTarea"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="4dp"
             android:src="@drawable/ic_edit"
+            android:background="@drawable/cornertxtview2"
             app:layout_constraintStart_toEndOf="@id/btnResponderFoto"
             app:layout_constraintTop_toTopOf="@id/btnResponderFoto"
             app:layout_constraintBottom_toBottomOf="@id/btnResponderFoto" />
 
-        <!-- Ícono borrar -->
         <ImageButton
             android:id="@+id/btnEliminarTarea"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_marginStart="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="4dp"
             android:src="@drawable/ic_delete"
+            android:background="@drawable/cornertxtview2"
             app:layout_constraintStart_toEndOf="@id/btnEditarTarea"
             app:layout_constraintTop_toTopOf="@id/btnResponderFoto"
             app:layout_constraintBottom_toBottomOf="@id/btnResponderFoto"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline_bottom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_end="0dp"
+            app:layout_constraintTop_toBottomOf="@id/btnResponderFoto"
+            app:layout_constraintBottom_toBottomOf="@id/imgRespuesta"
+            />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>

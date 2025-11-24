@@ -1,0 +1,6 @@
+<!-- res/drawable/textview_rounded_background.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <solid android:color="@color/white"/> <!-- Color de fondo del TextView -->
+    <corners android:radius="10dp"/> <!-- Radio de las esquinas -->
+</shape>

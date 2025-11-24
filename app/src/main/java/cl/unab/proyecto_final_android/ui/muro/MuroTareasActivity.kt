@@ -116,31 +116,43 @@ class MuroTareasActivity : AppCompatActivity() {
 
     // -------------------- CONFIGURACIÓN UI --------------------
 
+// MuroTareasActivity.kt
+
     private fun configurarRecyclerView() {
         adapter = TareaAdapter(
+            // Asegúrate de usar la propiedad 'esAdmin' en el adaptador si la implementaste
             tareas = emptyList(),
-            rolUsuario = rolUsuario,
+            esAdmin = esAdmin,
+            usernameActual = usernameActual,
+
             onResponderClick = { tarea ->
                 if (!tarea.estado.equals("Pendiente", ignoreCase = true)) {
                     Toast.makeText(this, "Solo se pueden responder las tareas pendientes", Toast.LENGTH_SHORT).show()
-                    return@TareaAdapter
+                    // Ya no necesitamos 'return@TareaAdapter' aquí
+                } else {
+                    tareaSeleccionadaParaRespuesta = tarea
+                    abrirCamaraParaRespuesta()
                 }
-                tareaSeleccionadaParaRespuesta = tarea
-                abrirCamaraParaRespuesta()
             },
+
             onEditarClick = { tarea ->
                 if (!esAdmin) {
                     Toast.makeText(this, "Solo el administrador puede editar tareas", Toast.LENGTH_SHORT).show()
-                    return@TareaAdapter
+                    // Ya no necesitamos 'return@TareaAdapter' aquí
+                } else {
+                    // Función para mostrar el diálogo de edición (debes implementarla)
+                    mostrarDialogoEditarTarea(tarea)
                 }
-                mostrarDialogoEditarTarea(tarea)
             },
+
             onEliminarClick = { tarea ->
                 if (!esAdmin) {
                     Toast.makeText(this, "Solo el administrador puede eliminar tareas", Toast.LENGTH_SHORT).show()
-                    return@TareaAdapter
+                    // Ya no necesitamos 'return@TareaAdapter' aquí
+                } else {
+                    // ⚠️ CAMBIADO: Llamar a la función de confirmación de ELIMINACIÓN
+                    confirmarEliminacionTarea(tarea)
                 }
-                confirmarRechazoTarea(tarea, position = null)
             }
         )
 
@@ -148,6 +160,49 @@ class MuroTareasActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@MuroTareasActivity)
             adapter = this@MuroTareasActivity.adapter
         }
+    }
+
+// ------------ LÓGICA DE ELIMINACIÓN ----------
+
+    private fun confirmarEliminacionTarea(tarea: Tarea) {
+        AlertDialog.Builder(this)
+            .setTitle("Confirmar Eliminación")
+            .setMessage("¿Estás seguro de que deseas eliminar la tarea #${tarea.id} permanentemente?")
+            .setPositiveButton("Eliminar") { dialog, which ->
+                eliminarTareaEnFirestore(tarea)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun eliminarTareaEnFirestore(tarea: Tarea) {
+        // ⚠️ CORRECCIÓN CRÍTICA: Usamos el viewModel para delegar la tarea de eliminación.
+
+        // Opcional: Mostrar ProgressBar
+        // binding.progressBarMuro.visibility = View.VISIBLE
+
+        // Llama al método del ViewModel para eliminar la tarea
+        viewModel.eliminarTarea(tarea) { ok, error ->
+            // Ocultar ProgressBar
+            // binding.progressBarMuro.visibility = View.GONE
+
+            if (ok) {
+                Toast.makeText(this, "Tarea eliminada con éxito.", Toast.LENGTH_SHORT).show()
+                // El viewModel se encargará de recargar/actualizar la lista automáticamente
+                // a través del LiveData, por lo que NO necesitamos llamar a cargarTareas()
+            } else {
+                Toast.makeText(this, "Error al eliminar: ${error}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+// -------------------- LÓGICA DE DATOS (Delegada al ViewModel) --------------------
+
+    // ⚠️ ADICIONAL: Ya que usas LiveData/uiState en observarViewModel(),
+// la función cargarTareas() debe ser muy simple y solo llamar al ViewModel.
+    private fun cargarTareas() {
+        // Llama al método del ViewModel para iniciar la carga de datos
+        viewModel.cargarTareas()
     }
 
     private fun configurarSpinnerPiso() {
@@ -372,14 +427,16 @@ class MuroTareasActivity : AppCompatActivity() {
 
     private fun observarViewModel() {
         viewModel.uiState.observe(this) { state ->
+            // 1. Mostrar/Ocultar ProgressBar
             binding.progressBarMuro.visibility = if (state.cargando) View.VISIBLE else View.GONE
-            // Usamos submitList (si usas ListAdapter) o actualizarLista (si usas RecyclerView.Adapter estándar)
-            // Según tu código anterior era 'actualizarLista'
-            adapter.actualizarLista(state.tareas)
+
+            // 2. CORRECCIÓN: Usar el método correcto definido en TareaAdapter
+            adapter.actualizarTareas(state.tareas)
+
+            // 3. Mostrar errores
             state.error?.let { Toast.makeText(this, it, Toast.LENGTH_SHORT).show() }
         }
     }
-
     private fun marcarBotonActivo(botonActivo: Button) {
         val botones = listOf(binding.btnTareasPendientes, binding.btnTareasAsignadas, binding.btnTareasRealizadas)
         botones.forEach { btn ->
@@ -395,6 +452,8 @@ class MuroTareasActivity : AppCompatActivity() {
             override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean = false
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.bindingAdapterPosition
+
+                // 💡 AHORA FUNCIONA: Llama al método que acabamos de agregar al adaptador.
                 val tarea = adapter.obtenerTareaEnPosicion(position) ?: return
 
                 if (!esAdmin) {
@@ -406,6 +465,8 @@ class MuroTareasActivity : AppCompatActivity() {
                 if (direction == ItemTouchHelper.LEFT) confirmarRechazoTarea(tarea, position)
                 else mostrarDialogoAsignarSupervisor(tarea)
 
+                // ⚠️ Nota: Es común que esta línea se mueva dentro de los callbacks del diálogo
+                // para que la interfaz se actualice SOLO si el usuario cancela la acción.
                 adapter.notifyItemChanged(position)
             }
         }
