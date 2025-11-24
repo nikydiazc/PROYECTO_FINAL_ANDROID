@@ -50,6 +50,7 @@ class CrearTareaActivity : AppCompatActivity() {
         rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
             ?: LoginActivity.ROL_CREAR
 
+
         configurarBottomNav()
 
         auth = FirebaseAuth.getInstance()

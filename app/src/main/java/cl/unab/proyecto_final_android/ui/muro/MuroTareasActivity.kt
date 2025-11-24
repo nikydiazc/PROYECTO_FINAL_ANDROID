@@ -1,6 +1,7 @@
 package cl.unab.proyecto_final_android.ui.muro
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -16,6 +17,7 @@ import cl.unab.proyecto_final_android.Tarea
 import cl.unab.proyecto_final_android.data.ModoMuro
 import cl.unab.proyecto_final_android.data.TareaRepository
 import cl.unab.proyecto_final_android.databinding.ActivityMuroTareasBinding
+import cl.unab.proyecto_final_android.ui.crear.CrearTareaActivity // Importa la Activity de destino
 import cl.unab.proyecto_final_android.ui.login.LoginActivity
 import cl.unab.proyecto_final_android.util.FiltroFechaManager
 import cl.unab.proyecto_final_android.util.MuroConfigurator
@@ -40,13 +42,14 @@ class MuroTareasActivity : AppCompatActivity() {
         get() = usernameActual.equals("administrador", ignoreCase = true) ||
                 usernameActual.equals("administrador@miapp.com", ignoreCase = true)
 
-    // Variables para la respuesta de Tarea (Cámara)
-    private var tareaEnRespuesta: Tarea? = null
-    private var fotoRespuestaUri: Uri? = null
+    // Variables de Estado para FOTOS
+    private var tareaEnRespuesta: Tarea? = null // Tarea seleccionada para responder
+    private var fotoAntesUri: Uri? = null // URI temporal para la foto ANTES (Creación de Tarea)
+    private var fotoRespuestaUri: Uri? = null // URI temporal para la foto DESPUÉS (Respuesta de Tarea)
 
     // ------------- LAUNCHERS ----------------
 
-    // LAUNCHER 1: Solicitud de Permiso de la Cámara
+    // LAUNCHER 1: Permisos de Cámara para RESPONDER TAREA
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted) {
@@ -60,10 +63,9 @@ class MuroTareasActivity : AppCompatActivity() {
             }
         }
 
-    // LAUNCHER 2: Captura de Foto
+    // LAUNCHER 2: Captura de Foto para RESPONDER TAREA
     private val camaraLauncher =
         registerForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
-
             val uriTomada = fotoRespuestaUri
             val tareaEnCurso = tareaEnRespuesta
 
@@ -73,6 +75,39 @@ class MuroTareasActivity : AppCompatActivity() {
                 Toast.makeText(this, "Captura de foto cancelada o fallida.", Toast.LENGTH_SHORT).show()
                 tareaEnRespuesta = null
                 fotoRespuestaUri = null
+            }
+        }
+
+    // LAUNCHER 3: Permisos de Cámara para CREAR TAREA
+    private val crearTareaCameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                lanzarCamaraParaCreacion()
+            } else {
+                Toast.makeText(this, "El permiso de la cámara es necesario para tomar la foto de la tarea.", Toast.LENGTH_LONG).show()
+            }
+        }
+
+    // LAUNCHER 4: Captura de Foto para CREAR TAREA (CORREGIDO)
+    private val crearTareaCamaraLauncher =
+        registerForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
+            if (success && fotoAntesUri != null) {
+                // LLAMA A LA FUNCIÓN AGREGADA ABAJO
+                lanzarCrearTareaActivity(fotoAntesUri!!)
+            } else {
+                Toast.makeText(this, "Captura de foto cancelada o fallida.", Toast.LENGTH_SHORT).show()
+                fotoAntesUri = null
+            }
+        }
+
+    // LAUNCHER 5: Selección de Galería para CREAR TAREA (CORREGIDO)
+    internal val crearTareaGaleriaLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            if (uri != null) {
+                // LLAMA A LA FUNCIÓN AGREGADA ABAJO
+                lanzarCrearTareaActivity(uri)
+            } else {
+                Toast.makeText(this, "Selección de foto cancelada.", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -89,10 +124,8 @@ class MuroTareasActivity : AppCompatActivity() {
         val repo = TareaRepository(FirebaseFirestore.getInstance(), FirebaseStorage.getInstance())
         val factory = TareasViewModelFactory(repo, esAdmin, usernameActual)
 
-        // El ViewModel debe inicializarse antes de ser usado.
         viewModel = ViewModelProvider(this, factory)[TareasViewModel::class.java]
 
-        // FiltroFechaManager utiliza el viewModel, por lo que debe inicializarse después.
         FiltroFechaManager(this, binding, viewModel)
 
 
@@ -122,19 +155,18 @@ class MuroTareasActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        //Recargar la lista garantiza que los datos estén frescos.
         viewModel.cargarTareas()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Liberar el View Binding y referencias de estado.
         _binding = null
         tareaEnRespuesta = null
         fotoRespuestaUri = null
+        fotoAntesUri = null
     }
 
-    // ------- CÁMARA -------------
+    // ------- FUNCIONES PARA RESPONDER TAREA (FOTO DESPUÉS) -------------
 
     // Función de entrada que verifica el permiso.
     fun intentarTomarFoto(tarea: Tarea) {
@@ -143,7 +175,6 @@ class MuroTareasActivity : AppCompatActivity() {
             return
         }
 
-        // 1. Guardar la tarea antes de la solicitud de permiso
         tareaEnRespuesta = tarea
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
@@ -155,36 +186,13 @@ class MuroTareasActivity : AppCompatActivity() {
 
     // Función que lanza la cámara (si el permiso es OK)
     internal fun lanzarCamaraDespuesDePermiso(tarea: Tarea) {
-        fotoRespuestaUri = crearUriDeArchivoTemporal()
+        fotoRespuestaUri = crearUriDeArchivoTemporal("RESPUESTA") // Usar prefijo
         val uriParaLanzar = fotoRespuestaUri
 
         if (uriParaLanzar != null) {
             camaraLauncher.launch(uriParaLanzar)
         } else {
             Toast.makeText(this, "Error al preparar el archivo de foto.", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // Función auxiliar para crear la URI temporal
-    internal fun crearUriDeArchivoTemporal(): Uri? {
-        try {
-            val storageDir: File = applicationContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-                ?: return null
-
-            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val fileName = "RESPUESTA_${tareaEnRespuesta?.id ?: "TEMP"}_${timeStamp}"
-
-            val imagenTemporal = File.createTempFile(fileName, ".jpg", storageDir)
-
-            return FileProvider.getUriForFile(
-                applicationContext,
-                "${applicationContext.packageName}.fileprovider",
-                imagenTemporal
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Error de Sistema al crear archivo: ${e.message}", Toast.LENGTH_LONG).show()
-            return null
         }
     }
 
@@ -204,7 +212,77 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
-    // -----OBSERVER ------
+    // ------- FUNCIONES PARA CREAR TAREA (FOTO ANTES) -------------
+
+    // Función de entrada para la cámara (llamada desde MuroConfigurator)
+    fun intentarTomarFotoParaCreacion() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            lanzarCamaraParaCreacion()
+        } else {
+            crearTareaCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    // Función que lanza la galería (llamada desde MuroConfigurator)
+    fun lanzarGaleriaParaCreacion() {
+        crearTareaGaleriaLauncher.launch("image/*") // Inicia el Launcher 5
+    }
+
+    // Función que lanza la cámara (si el permiso es OK)
+    private fun lanzarCamaraParaCreacion() {
+        fotoAntesUri = crearUriDeArchivoTemporal("ANTES") // Usar prefijo
+        val uriParaLanzar = fotoAntesUri
+
+        if (uriParaLanzar != null) {
+            crearTareaCamaraLauncher.launch(uriParaLanzar) // Inicia el Launcher 4
+        } else {
+            Toast.makeText(this, "Error al preparar el archivo de foto.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // --- ¡NUEVA FUNCIÓN REQUERIDA PARA EL LANZADOR! ---
+    /**
+     * Lanza la CrearTareaActivity, pasando la URI de la foto inicial.
+     */
+    private fun lanzarCrearTareaActivity(uriFotoAntes: Uri) {
+        val intent = Intent(this, CrearTareaActivity::class.java).apply {
+            // Aseguramos que los datos de usuario vayan a la siguiente Activity
+            putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
+            putExtra(LoginActivity.EXTRA_USERNAME, usernameActual)
+            // Pasamos la URI de la foto inicial (el corazón de la corrección)
+            putExtra("EXTRA_FOTO_ANTES_URI", uriFotoAntes.toString())
+        }
+        startActivity(intent)
+    }
+
+
+    // ------- FUNCIONES AUXILIARES Y OBSERVADORES -------------
+
+    /**
+     * Función auxiliar para crear la URI temporal.
+     * @param prefijo Prefijo del nombre del archivo (ej: "ANTES", "RESPUESTA").
+     */
+    private fun crearUriDeArchivoTemporal(prefijo: String): Uri? {
+        try {
+            val storageDir: File = applicationContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+                ?: return null
+
+            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "${prefijo}_${timeStamp}"
+
+            val imagenTemporal = File.createTempFile(fileName, ".jpg", storageDir)
+
+            return FileProvider.getUriForFile(
+                applicationContext,
+                "${applicationContext.packageName}.fileprovider",
+                imagenTemporal
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error de Sistema al crear archivo: ${e.message}", Toast.LENGTH_LONG).show()
+            return null
+        }
+    }
 
     private fun observarViewModel() {
         viewModel.uiState.observe(this) { state ->

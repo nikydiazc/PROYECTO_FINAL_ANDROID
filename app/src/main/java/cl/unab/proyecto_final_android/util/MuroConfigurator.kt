@@ -1,8 +1,8 @@
 package cl.unab.proyecto_final_android.util
 
-import cl.unab.proyecto_final_android.R
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import cl.unab.proyecto_final_android.R
 import cl.unab.proyecto_final_android.Tarea
 import cl.unab.proyecto_final_android.data.ModoMuro
 import cl.unab.proyecto_final_android.databinding.ActivityMuroTareasBinding
@@ -31,7 +32,7 @@ object MuroConfigurator {
 
 
     data class SupervisorUsuario(val nombreVisible: String, val username: String)
-    private val listaSupervisores = listOf(
+    val listaSupervisores = listOf(
         // --- Supervisores Poniente ---
         SupervisorUsuario("Delfina Cabello (Poniente)", "delfina.cabello"),
         SupervisorUsuario("Rodrigo Reyes (Poniente)", "rodrigo.reyes"),
@@ -162,7 +163,7 @@ object MuroConfigurator {
             override fun afterTextChanged(s: Editable?) {}
         })
 
-
+        // Se eliminó el listener del botón de crear aquí.
     }
 
     private fun cambiarModoYActualizarUI(
@@ -211,18 +212,21 @@ object MuroConfigurator {
 
     fun configurarBottomNav(activity: MuroTareasActivity, bottomNav: BottomNavigationView, rolUsuario: String, usernameActual: String) {
 
-        //Esto fuerza a que los iconos usen su color original (o el definido en el XML)
         bottomNav.itemIconTintList = null
 
         bottomNav.selectedItemId = R.id.nav_muro_tareas
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_crear_tarea -> {
-                    // USA los parámetros rolUsuario y usernameActual que se le pasaron a la función
-                    activity.startActivity(Intent(activity, CrearTareaActivity::class.java).apply {
-                        putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
-                        putExtra(LoginActivity.EXTRA_USERNAME, usernameActual)
-                    })
+                    // FLUJO CORREGIDO: Navegamos directamente a CrearTareaActivity
+                    if (rolUsuario == LoginActivity.ROL_ADMIN) {
+                        activity.startActivity(Intent(activity, CrearTareaActivity::class.java).apply {
+                            putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
+                            putExtra(LoginActivity.EXTRA_USERNAME, usernameActual)
+                        })
+                    } else {
+                        Toast.makeText(activity, "Solo el administrador puede crear tareas", Toast.LENGTH_SHORT).show()
+                    }
                     true
                 }
                 R.id.nav_muro_tareas -> {
@@ -253,7 +257,7 @@ object MuroConfigurator {
             .show()
     }
 
-    // -------- EDICIÓN / ELIMINACIÓN----------------
+    // -------- EDICIÓN / ELIMINACIÓN ----------------
 
     fun confirmarEliminacionTarea(context: Context, viewModel: TareasViewModel, tarea: Tarea) {
         AlertDialog.Builder(context)
