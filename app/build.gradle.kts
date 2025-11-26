@@ -86,4 +86,6 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test:core-ktx:1.5.0")
 
-}
+        implementation("com.github.Baseflow:PhotoView:2.3.0")
+    }
+

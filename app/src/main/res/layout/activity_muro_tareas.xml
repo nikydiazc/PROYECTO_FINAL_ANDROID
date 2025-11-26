@@ -74,7 +74,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:layout_minHeight="60dp"
+            android:minHeight="40dp"
             android:background="@drawable/cornertxtview"
             android:hint="Buscar por descripción o ubicación"
             android:paddingHorizontal="12dp"
@@ -88,7 +88,7 @@
             android:id="@+id/spFiltroSupervisor"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_minHeight="40dp"
+            android:minHeight="40dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/cornertxtview"
             android:visibility="gone"
@@ -126,7 +126,7 @@
                     android:id="@+id/spFiltroPiso"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_minHeight="40dp"
+                    android:minHeight="40dp"
                     android:background="@drawable/cornertxtview"/>
             </LinearLayout>
 
@@ -157,7 +157,7 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="4dp"
-                        android:layout_minHeight="40dp"
+                        android:minHeight="40dp"
                         android:background="@drawable/cornertxtview"
                         android:hint="Desde:"
                         android:paddingStart="10dp"
@@ -174,7 +174,7 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
-                        android:layout_minHeight="40dp"
+                        android:minHeight="40dp"
                         android:background="@drawable/cornertxtview"
                         android:hint="Hasta:"
                         android:paddingStart="10dp"
@@ -233,12 +233,13 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@color/white"
-        app:itemActiveIndicatorStyle="@style/Widget.Material3.BottomNavigationView.ActiveIndicator"
         app:menu="@menu/bottom_nav_menu"
         app:itemIconTint="@null"
         app:itemTextColor="@color/nav_item_selector"
         app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent" />
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>

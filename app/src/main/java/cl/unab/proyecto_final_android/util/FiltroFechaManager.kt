@@ -83,7 +83,7 @@ class FiltroFechaManager(
     }
 
     private fun limpiarTodosLosFiltrosUI() {
-        // 1. Limpiar Variables de Fecha
+        // 1. Limpiar variables internas
         fechaSeleccionadaDesde = null
         fechaSeleccionadaHasta = null
 
@@ -94,12 +94,13 @@ class FiltroFechaManager(
         binding.tvFechaHasta.hint = "Hasta: DD/MM/AAAA"
         binding.etBuscarDescripcionOUbicacion.setText("")
 
-        // Volver spinners a "Todos"
         binding.spFiltroPiso.setSelection(0)
         binding.spFiltroSupervisor.setSelection(0)
 
-        // 3. Llamar al ViewModel para resetear lógica
+        // 3. Avisar al ViewModel que resetee LÓGICA de filtros
         viewModel.limpiarTodosLosFiltros()
+
         Toast.makeText(context, "Todos los filtros restablecidos", Toast.LENGTH_SHORT).show()
     }
+
 }

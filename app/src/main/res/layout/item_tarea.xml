@@ -5,188 +5,164 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="12dp"
-    app:cardElevation="4dp"
-    app:cardCornerRadius="8dp">
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/cl_item_tarea"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="15dp"
+        android:padding="12dp"
         android:background="@color/gris2">
 
-        <!-- Foto principal -->
-        <ImageView
-            android:id="@+id/img_tarea"
-            android:layout_width="0dp"
+        <!-- CONTENEDOR DE FOTOS (Antes / Después superpuestas) -->
+        <FrameLayout
+            android:id="@+id/layoutFotos"
+            android:layout_width="120dp"
             android:layout_height="0dp"
-            android:scaleType="centerCrop"
-            android:src="@drawable/camera_icon"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintWidth_percent="0.32"
-            app:layout_constraintDimensionRatio="1:1.5" />
+            app:layout_constraintStart_toStartOf="parent">
 
-        <!-- Foto de respuesta (opcional) -->
-        <ImageView
-            android:id="@+id/img_respuesta"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginTop="4dp"
-            android:scaleType="centerCrop"
-            android:src="@drawable/camera_icon"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="@id/img_tarea"
-            app:layout_constraintTop_toBottomOf="@id/img_tarea"
-            app:layout_constraintWidth_percent="0.32"
-            app:layout_constraintDimensionRatio="1:1.5" />
+            <ImageView
+                android:id="@+id/imgTarea"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:scaleType="centerInside"
+                android:src="@drawable/camera_icon" />
 
-        <!-- Descripción -->
-        <TextView
-            android:id="@+id/tv_descripcion_tarea"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:text="Descripción de la tarea"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:background="@drawable/cornertxtview2"
-            android:textColor="@color/black"
-            app:layout_constraintStart_toEndOf="@id/img_tarea"
-            app:layout_constraintTop_toTopOf="@id/img_tarea"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            <!-- La foto de respuesta se mostrará solo en pantalla completa.
+                 En la card la dejamos oculta para no agrandar el alto. -->
+            <ImageView
+                android:id="@+id/imgRespuesta"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:scaleType="centerCrop"
+                android:src="@drawable/camera_icon"
+                android:visibility="gone" />
 
-        <!-- Ubicación -->
-        <TextView
-            android:id="@+id/tv_ubicacion_tarea"
+        </FrameLayout>
+
+        <!-- COLUMNA DERECHA: TEXTOS + BOTONES -->
+        <LinearLayout
+            android:id="@+id/layoutInfo"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:layout_marginStart="12dp"
-            android:layout_marginTop="8dp"
-            android:text="Ubicación:"
-            android:textSize="14sp"
-            android:background="@drawable/cornertxtview2"
-            android:textColor="@color/black"
-            app:layout_constraintStart_toEndOf="@id/img_tarea"
-            app:layout_constraintTop_toBottomOf="@id/tv_descripcion_tarea"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            app:layout_constraintTop_toTopOf="@id/layoutFotos"
+            app:layout_constraintBottom_toBottomOf="@id/layoutFotos"
+            app:layout_constraintStart_toEndOf="@id/layoutFotos"
+            app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Piso -->
-        <TextView
-            android:id="@+id/tv_piso_valor"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="4dp"
-            android:text="Piso 1"
-            android:textSize="14sp"
-            android:background="@drawable/cornertxtview2"
-            android:textColor="@color/black"
-            app:layout_constraintStart_toEndOf="@id/img_tarea"
-            app:layout_constraintTop_toBottomOf="@id/tv_ubicacion_tarea"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            <TextView
+                android:id="@+id/tvDescripcionTarea"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/cornertxtview2"
+                android:padding="4dp"
+                android:text="Descripción de la tarea"
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
-        <!-- Fecha creación -->
-        <TextView
-            android:id="@+id/tv_fecha_creacion"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="4dp"
-            android:text="Creada: 17/11/2025 14:35"
-            android:textSize="12sp"
-            android:background="@drawable/cornertxtview2"
-            android:textColor="@color/black"
-            app:layout_constraintStart_toEndOf="@id/img_tarea"
-            app:layout_constraintTop_toBottomOf="@id/tv_piso_valor"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            <TextView
+                android:id="@+id/tvUbicacionTarea"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/cornertxtview2"
+                android:padding="4dp"
+                android:text="Ubicación:"
+                android:textSize="14sp" />
 
-        <!-- Fecha respuesta (opcional) -->
-        <TextView
-            android:id="@+id/tv_fecha_respuesta"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="2dp"
-            android:text="Realizada: 18/11/2025 10:12"
-            android:textSize="12sp"
-            android:visibility="gone"
-            android:background="@drawable/cornertxtview2"
-            android:textColor="@color/white"
-            app:layout_constraintStart_toEndOf="@id/img_tarea"
-            app:layout_constraintTop_toBottomOf="@id/tv_fecha_creacion"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            <TextView
+                android:id="@+id/tvPisoValor"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/cornertxtview2"
+                android:padding="4dp"
+                android:text="Piso 1"
+                android:textSize="14sp" />
 
-        <!-- Estado -->
-        <TextView
-            android:id="@+id/tv_estado_tarea"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="8dp"
-            android:text="Estado: Pendiente"
-            android:textColor="@android:color/holo_red_dark"
-            android:textSize="14sp"
-            android:background="@drawable/cornertxtview2"
-            app:layout_constraintStart_toEndOf="@id/img_tarea"
-            app:layout_constraintTop_toBottomOf="@id/tv_fecha_respuesta"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            <TextView
+                android:id="@+id/tvFechaCreacion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/cornertxtview2"
+                android:padding="4dp"
+                android:text="Creada: 24/11/2025 12:20"
+                android:textSize="12sp" />
 
-        <!-- Asignada a -->
-        <TextView
-            android:id="@+id/tv_asignada_a"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="4dp"
-            android:text="Asignada a: -"
-            android:textSize="13sp"
-            android:background="@drawable/cornertxtview2"
-            android:textColor="@color/black"
-            app:layout_constraintStart_toEndOf="@id/img_tarea"
-            app:layout_constraintTop_toBottomOf="@id/tv_estado_tarea"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            <TextView
+                android:id="@+id/tvFechaRespuesta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/cornertxtview2"
+                android:padding="4dp"
+                android:text="Realizada: 25/11/2025 10:00"
+                android:textSize="12sp"
+                android:visibility="gone" />
 
-        <!-- Botones y acciones -->
-        <Button
-            android:id="@+id/btn_responder_foto"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="12dp"
-            android:text="Responder"
-            android:textSize="14sp"
-            android:textColor="@color/white"
-            android:backgroundTint="@color/verde"
-            app:layout_constraintStart_toEndOf="@id/img_tarea"
-            app:layout_constraintTop_toBottomOf="@id/tv_asignada_a"
-            />
+            <TextView
+                android:id="@+id/tvEstadoTarea"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:padding="4dp"
+                android:text="Estado: Pendiente"
+                android:textSize="14sp" />
 
-        <ImageButton
-            android:id="@+id/btn_editar_tarea"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="8dp"
-            android:padding="4dp"
-            android:src="@drawable/ic_edit"
-            android:background="@drawable/cornertxtview2"
-            app:layout_constraintStart_toEndOf="@id/btn_responder_foto"
-            app:layout_constraintTop_toTopOf="@id/btn_responder_foto"
-            app:layout_constraintBottom_toBottomOf="@id/btn_responder_foto"/>
+            <TextView
+                android:id="@+id/tvAsignadaA"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/cornertxtview2"
+                android:padding="4dp"
+                android:text="Asignada a: —"
+                android:textSize="13sp" />
 
-        <ImageButton
-            android:id="@+id/btn_eliminar_tarea"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="4dp"
-            android:padding="4dp"
-            android:src="@drawable/ic_delete"
-            android:background="@drawable/cornertxtview2"
-            app:layout_constraintStart_toEndOf="@id/btn_editar_tarea"
-            app:layout_constraintTop_toTopOf="@id/btn_responder_foto"
-            app:layout_constraintBottom_toBottomOf="@id/btn_responder_foto"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            <!-- FILA DE BOTONES -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal"
+                android:gravity="end">
+
+                <Button
+                    android:id="@+id/btnResponderFoto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Responder"
+                    android:textSize="14sp"
+                    android:textColor="@color/white"
+                    android:backgroundTint="@color/verde" />
+
+                <ImageButton
+                    android:id="@+id/btnEditarTarea"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/cornertxtview2"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_edit" />
+
+                <ImageButton
+                    android:id="@+id/btnEliminarTarea"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/cornertxtview2"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_delete" />
+            </LinearLayout>
+
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>

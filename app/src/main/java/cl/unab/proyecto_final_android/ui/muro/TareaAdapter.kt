@@ -2,8 +2,8 @@ package cl.unab.proyecto_final_android.ui.muro
 
 import android.content.Intent
 import android.view.LayoutInflater
-import android.view.ViewGroup
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import cl.unab.proyecto_final_android.R
@@ -11,7 +11,7 @@ import cl.unab.proyecto_final_android.Tarea
 import cl.unab.proyecto_final_android.VisualizadorImagenActivity
 import cl.unab.proyecto_final_android.databinding.ItemTareaBinding
 import cl.unab.proyecto_final_android.ui.login.LoginActivity
-import cl.unab.proyecto_final_android.util.ColorStatus // Asegúrate de tener ColorStatus.kt
+import cl.unab.proyecto_final_android.util.ColorStatus
 import com.bumptech.glide.Glide
 import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
@@ -20,26 +20,20 @@ import java.util.Locale
 
 class TareaAdapter(
     private var tareas: List<Tarea>,
-
-    // 1. MODIFICACIÓN CRUCIAL: Reemplazamos 'esAdmin' por 'rolUsuario'
     private val rolUsuario: String,
     private val usernameActual: String,
-
-    // Callbacks
     private val onResponderClick: (Tarea) -> Unit,
     private val onEditarClick: (Tarea) -> Unit,
     private val onEliminarClick: (Tarea) -> Unit
 ) : RecyclerView.Adapter<TareaAdapter.TareaViewHolder>() {
 
-    // Helper para determinar si es administrador
     private val esAdmin: Boolean
         get() = rolUsuario == LoginActivity.ROL_ADMIN
 
-    // Helper para formatear la fecha
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
-    // Clase interna ViewHolder
-    inner class TareaViewHolder(val binding: ItemTareaBinding) : RecyclerView.ViewHolder(binding.root)
+    inner class TareaViewHolder(val binding: ItemTareaBinding) :
+        RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TareaViewHolder {
         val binding = ItemTareaBinding.inflate(
@@ -57,114 +51,129 @@ class TareaAdapter(
         val binding = holder.binding
         val context = holder.itemView.context
 
-        // 1. POBLAR DATOS GENERALES
+        // 1. Datos básicos
         binding.tvDescripcionTarea.text = tarea.descripcion
         binding.tvUbicacionTarea.text = "Ubicación: ${tarea.ubicacion}"
         binding.tvPisoValor.text = "Piso: ${tarea.piso}"
-        binding.tvAsignadaA.text = "Asignada a: ${if (tarea.asignadaA.isNullOrEmpty()) "—" else tarea.asignadaA}"
+        binding.tvAsignadaA.text =
+            "Asignada a: ${if (tarea.asignadaA.isNullOrEmpty()) "—" else tarea.asignadaA}"
         binding.tvFechaCreacion.text = "Creada: ${formatearTimestamp(tarea.fechaCreacion)}"
 
-        // Asignar estado y color/fondo usando ColorStatus
+        // Estado + color de fondo
         binding.tvEstadoTarea.text = "Estado: ${tarea.estado}"
-        binding.tvEstadoTarea.setBackgroundResource(ColorStatus.getColorResource(tarea.estado))
+        binding.tvEstadoTarea.setBackgroundResource(
+            ColorStatus.getColorResource(tarea.estado ?: "")
+        )
 
+        // 2. Visibilidad de botones según rol
 
-        // 2. LÓGICA DE VISIBILIDAD DE BOTONES Y CAMPOS DE RESPUESTA
-
-        // --- Permisos de Edición/Eliminación ---
-        // SOLO Admin puede editar/eliminar. Ningún supervisor ni creador.
+        // Solo admin puede editar/eliminar
         val puedeAdministrar = esAdmin
         binding.btnEditarTarea.visibility = if (puedeAdministrar) View.VISIBLE else View.GONE
         binding.btnEliminarTarea.visibility = if (puedeAdministrar) View.VISIBLE else View.GONE
 
-        // --- Permisos para Responder ---
-        val puedeResponder = rolUsuario != LoginActivity.ROL_ADMIN && tarea.estado != "Realizada" && tarea.estado != "Rechazada"
+        // Permisos para responder:
+        val puedeResponder = rolUsuario != LoginActivity.ROL_CREAR &&
+                !tarea.estado.equals("Realizada", ignoreCase = true) &&
+                !tarea.estado.equals("Rechazada", ignoreCase = true)
 
-        // Si la tarea está asignada, solo puede responder el asignado (supervisor/realizador específico)
-        val asignadaAotro = !tarea.asignadaA.isNullOrEmpty() && tarea.asignadaA != usernameActual
+        // Si la tarea está asignada a alguien específico:
+        val asignadaAOtroSupervisor =
+            !tarea.asignadaA.isNullOrEmpty() &&
+                    tarea.asignadaA != usernameActual &&
+                    rolUsuario == LoginActivity.ROL_REALIZAR
 
-        // Mostrar botón Responder: Si tiene permiso general Y no está asignada a otro.
-        binding.btnResponderFoto.visibility = if (puedeResponder && !asignadaAotro) View.VISIBLE else View.GONE
+        binding.btnResponderFoto.visibility =
+            if (puedeResponder && !asignadaAOtroSupervisor) View.VISIBLE else View.GONE
 
+        // 3. Vistas condicionales según estado
+        // 👉 Siempre mostramos SOLO la imagen "principal" en el card (imgTarea).
+        //    La segunda imagen se verá solo en pantalla completa, deslizándola.
+        binding.imgRespuesta.visibility = View.GONE
 
-// Dentro de TareaAdapter.kt -> override fun onBindViewHolder(...)
-
-// ... (Resto del código de permisos y configuración inicial)
-
-// 3. VISTAS CONDICIONALES POR ESTADO
         when (tarea.estado) {
             "Pendiente", "Asignada" -> {
-                // Ocultar elementos de Realizada
-                binding.imgRespuesta.visibility = View.GONE
                 binding.tvFechaRespuesta.visibility = View.GONE
-                // ¡Se elimina la referencia a tvFechaRespuestaTitle!
-
-                // Cargar Foto ANTES
                 cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
             }
-            "Realizada", "Rechazada" -> {
-                // Mostrar elementos de Realizada
-                binding.imgRespuesta.visibility = View.VISIBLE
-                binding.tvFechaRespuesta.visibility = View.VISIBLE
 
-                // CORRECCIÓN: Usamos tvFechaRespuesta para mostrar etiqueta y valor
+            "Realizada" -> {
+                binding.tvFechaRespuesta.visibility = View.VISIBLE
                 val fechaFormateada = formatearTimestamp(tarea.fechaRespuesta)
                 binding.tvFechaRespuesta.text = "Realizada: $fechaFormateada"
 
-                // Cargar Foto ANTES (Original)
+                // En el card mostramos solo la foto ANTES (o podrías cambiar a fotoDespues si prefieres)
                 cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
+            }
 
-                // Cargar Foto DESPUÉS (Respuesta)
-                cargarFoto(context, binding.imgRespuesta, tarea.fotoDespuesUrl)
+            "Rechazada" -> {
+                binding.tvFechaRespuesta.visibility = View.VISIBLE
+                val fechaFormateada = formatearTimestamp(tarea.fechaRespuesta)
+                binding.tvFechaRespuesta.text = "Rechazada: $fechaFormateada"
+
+                cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
+            }
+
+            else -> {
+                binding.tvFechaRespuesta.visibility = View.GONE
+                cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
             }
         }
 
-// ... (Resto de listeners y funciones auxiliares)
-
-        // 4. LISTENERS DE CLIC (Fotos y Botones de Acción)
-
-        // Listener para la foto ANTES (imgTarea)
+        // 4. Click en la imagen: abre visualizador con 1 o 2 fotos y se pueden deslizar
         binding.imgTarea.setOnClickListener {
-            abrirVisualizador(context, tarea.fotoAntesUrl)
+            abrirVisualizador(context, tarea)
         }
 
-        // Listener para la foto DESPUÉS (imgRespuesta)
-        binding.imgRespuesta.setOnClickListener {
-            if (tarea.estado == "Realizada") {
-                abrirVisualizador(context, tarea.fotoDespuesUrl)
-            } else {
-                Toast.makeText(context, "Aún no hay foto de respuesta disponible", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // Botones de Acción
+        // 5. Botones de acción
         binding.btnResponderFoto.setOnClickListener { onResponderClick(tarea) }
         binding.btnEditarTarea.setOnClickListener { onEditarClick(tarea) }
         binding.btnEliminarTarea.setOnClickListener { onEliminarClick(tarea) }
     }
 
-    // ---------------------- FUNCIONES AUXILIARES ----------------------
+    // ---------------------- AUXILIARES ----------------------
 
-    private fun cargarFoto(context: android.content.Context, imageView: android.widget.ImageView, url: String?) {
+    private fun cargarFoto(
+        context: android.content.Context,
+        imageView: android.widget.ImageView,
+        url: String?
+    ) {
         if (!url.isNullOrEmpty()) {
             Glide.with(context)
                 .load(url)
-                .placeholder(R.drawable.camera_icon) // Asegúrate de tener este drawable
-                .error(R.drawable.error_placeholder) // Asegúrate de tener este drawable
+                .placeholder(R.drawable.camera_icon)
+                .error(R.drawable.error_placeholder)
                 .into(imageView)
         } else {
             imageView.setImageResource(R.drawable.camera_icon)
         }
     }
 
-    private fun abrirVisualizador(context: android.content.Context, url: String?) {
-        if (!url.isNullOrEmpty()) {
+    /**
+     * Abre el visualizador a pantalla completa.
+     * - Si solo hay fotoAntes → se ve 1 imagen
+     * - Si hay fotoAntes y fotoDespues → se ven 2 y se desliza entre ellas
+     */
+    private fun abrirVisualizador(context: android.content.Context, tarea: Tarea) {
+        val urls = arrayListOf<String>()
+
+        tarea.fotoAntesUrl?.let { if (it.isNotBlank()) urls.add(it) }
+        tarea.fotoDespuesUrl?.let { if (it.isNotBlank()) urls.add(it) }
+
+        if (urls.isNotEmpty()) {
             val intent = Intent(context, VisualizadorImagenActivity::class.java).apply {
-                putStringArrayListExtra(VisualizadorImagenActivity.EXTRA_IMAGE_URLS, arrayListOf(url))
+                putStringArrayListExtra(
+                    VisualizadorImagenActivity.EXTRA_IMAGE_URLS,
+                    urls
+                )
             }
             context.startActivity(intent)
         } else {
-            Toast.makeText(context, "No hay foto disponible para mostrar", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                "No hay fotos disponibles para mostrar",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -176,14 +185,14 @@ class TareaAdapter(
         }
     }
 
-    // ---------------------- MÉTODOS REQUERIDOS ----------------------
+    // ---------------------- PÚBLICOS PARA EL VIEWMODEL ----------------------
 
     fun actualizarTareas(nuevasTareas: List<Tarea>) {
-        this.tareas = nuevasTareas
+        tareas = nuevasTareas
         notifyDataSetChanged()
     }
 
     fun obtenerTareaEnPosicion(position: Int): Tarea? {
-        return if (position >= 0 && position < tareas.size) tareas[position] else null
+        return if (position in tareas.indices) tareas[position] else null
     }
 }

@@ -97,37 +97,6 @@ android:layout_width="match_parent"
         app:layout_constraintEnd_toEndOf="parent"
         />
 
-    <!-- Botones (Guardar/Cancelar) -->
-    <LinearLayout
-        android:id="@+id/layout_buttons"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:orientation="horizontal"
-        android:gravity="end"
-        app:layout_constraintTop_toBottomOf="@id/sp_piso_editar"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-    <Button
-        android:id="@+id/btn_cancelar_editar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Cancelar"
-        android:backgroundTint="@color/blue"
-        android:layout_marginEnd="16dp"
-    />
-
-    <Button
-        android:id="@+id/btn_guardar_editar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Guardar"
-        android:backgroundTint="@color/verde"
-        android:textColor="@color/white"
-    />
-
-    </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

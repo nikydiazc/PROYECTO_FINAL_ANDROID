@@ -8,10 +8,10 @@ import androidx.viewpager2.widget.ViewPager2
 import cl.unab.proyecto_final_android.databinding.ActivityVisualizadorImagenBinding
 import cl.unab.proyecto_final_android.ui.muro.FullScreenImageAdapter
 
-
 class VisualizadorImagenActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityVisualizadorImagenBinding
+    private var _binding: ActivityVisualizadorImagenBinding? = null
+    private val binding get() = _binding!!
 
     companion object {
         const val EXTRA_IMAGE_URLS = "extra_image_urls"
@@ -19,41 +19,48 @@ class VisualizadorImagenActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityVisualizadorImagenBinding.inflate(layoutInflater)
+        _binding = ActivityVisualizadorImagenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         supportActionBar?.hide()
 
-        // 1. Recibimos el array de URLs
+        // Ocultamos progress siempre (la carga real ocurre en el adapter)
+        binding.progressBarImage.visibility = View.GONE
+
+        // 1. Recibir URLs
         val imageUrls = intent.getStringArrayListExtra(EXTRA_IMAGE_URLS)
 
-        if (!imageUrls.isNullOrEmpty()) {
+        if (imageUrls.isNullOrEmpty()) {
+            Toast.makeText(this, "No se encontraron imágenes.", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
-            // Ocultamos la ProgressBar
-            binding.progressBarImage.visibility = View.GONE
+        // 2. Configurar ViewPager2
+        val adapter = FullScreenImageAdapter(imageUrls) {
+            finish() // Cerrar al tocar la imagen
+        }
+        binding.viewPagerFullScreen.adapter = adapter
 
-            // 2. Configurar el ViewPager2 con el nuevo adaptador
-            val adapter = FullScreenImageAdapter(imageUrls) {
-                // Lambda para manejar el clic en la imagen
-                finish()
-            }
-            binding.viewPagerFullScreen.adapter = adapter
+        // 3. Indicador "X / Y"
+        if (imageUrls.size > 1) {
+            binding.tvImageIndicator.visibility = View.VISIBLE
+            binding.tvImageIndicator.text = "1 / ${imageUrls.size}"
 
-            // 3. Configurar el indicador (opcional)
-            if (imageUrls.size > 1) {
-                binding.tvImageIndicator.visibility = View.VISIBLE
-                binding.tvImageIndicator.text = "1 / ${imageUrls.size}"
-
-                binding.viewPagerFullScreen.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            binding.viewPagerFullScreen.registerOnPageChangeCallback(
+                object : ViewPager2.OnPageChangeCallback() {
                     override fun onPageSelected(position: Int) {
                         binding.tvImageIndicator.text = "${position + 1} / ${imageUrls.size}"
                     }
-                })
-            }
-
+                }
+            )
         } else {
-            Toast.makeText(this, "No se encontraron URLs de imagen.", Toast.LENGTH_SHORT).show()
-            finish()
+            binding.tvImageIndicator.visibility = View.GONE
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
     }
 }

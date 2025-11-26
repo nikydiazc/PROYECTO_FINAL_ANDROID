@@ -6,13 +6,13 @@ import cl.unab.proyecto_final_android.data.TareaRepository
 
 class TareasViewModelFactory(
     private val tareaRepository: TareaRepository,
-    private val esAdmin: Boolean,
+    private val rolUsuario: String,
     private val usernameActual: String
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TareasViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TareasViewModel(tareaRepository, esAdmin, usernameActual) as T
+            return TareasViewModel(tareaRepository, rolUsuario, usernameActual) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

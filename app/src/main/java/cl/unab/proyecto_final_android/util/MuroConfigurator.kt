@@ -2,9 +2,6 @@ package cl.unab.proyecto_final_android.util
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -12,7 +9,6 @@ import android.widget.Button
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -27,11 +23,15 @@ import cl.unab.proyecto_final_android.ui.muro.MuroTareasActivity
 import cl.unab.proyecto_final_android.ui.muro.TareaAdapter
 import cl.unab.proyecto_final_android.ui.muro.TareasViewModel
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import androidx.appcompat.widget.AppCompatEditText
 
 object MuroConfigurator {
 
+    // ---------- MODELO PARA SUPERVISORES ----------
 
     data class SupervisorUsuario(val nombreVisible: String, val username: String)
+
+    // Lista única centralizada, la usan ViewModel y diálogos
     val listaSupervisores = listOf(
         // --- Supervisores Poniente ---
         SupervisorUsuario("Delfina Cabello (Poniente)", "delfina.cabello"),
@@ -47,12 +47,16 @@ object MuroConfigurator {
         SupervisorUsuario("Jorge Geisbuhler (Oriente)", "jorge.geisbuhler")
     )
 
+    // ---------- RECYCLERVIEW ----------
+
     fun configurarRecyclerView(rv: RecyclerView, adapter: TareaAdapter) {
         rv.apply {
             layoutManager = LinearLayoutManager(rv.context)
             this.adapter = adapter
         }
     }
+
+    // ---------- SPINNERS (PISO + SUPERVISOR) ----------
 
     fun configurarSpinners(
         context: Context,
@@ -84,7 +88,8 @@ object MuroConfigurator {
                 position: Int,
                 id: Long
             ) {
-                viewModel.cambiarPiso(parent?.getItemAtPosition(position).toString())
+                val valor = parent?.getItemAtPosition(position).toString()
+                viewModel.cambiarPiso(valor)
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -122,48 +127,47 @@ object MuroConfigurator {
             }
     }
 
+    // ---------- EVENTOS GENERALES UI (BOTONES + BUSCADOR) ----------
+
     fun configurarEventosUI(
         binding: ActivityMuroTareasBinding,
         viewModel: TareasViewModel,
         esAdmin: Boolean
     ) {
-        // Botones de Modo
+        // Botones de modo
         binding.btnTareasPendientes.setOnClickListener {
-            cambiarModoYActualizarUI(
-                binding,
-                viewModel,
-                esAdmin,
-                ModoMuro.PENDIENTES
-            )
-        }
-        binding.btnTareasRealizadas.setOnClickListener {
-            cambiarModoYActualizarUI(
-                binding,
-                viewModel,
-                esAdmin,
-                ModoMuro.REALIZADAS
-            )
+            cambiarModoYActualizarUI(binding, viewModel, esAdmin, ModoMuro.PENDIENTES)
         }
         binding.btnTareasAsignadas.setOnClickListener {
-            cambiarModoYActualizarUI(
-                binding,
-                viewModel,
-                esAdmin,
-                ModoMuro.ASIGNADAS
-            )
+            cambiarModoYActualizarUI(binding, viewModel, esAdmin, ModoMuro.ASIGNADAS)
+        }
+        binding.btnTareasRealizadas.setOnClickListener {
+            cambiarModoYActualizarUI(binding, viewModel, esAdmin, ModoMuro.REALIZADAS)
         }
 
-        // Buscador
-        binding.etBuscarDescripcionOUbicacion.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                viewModel.actualizarBusqueda(s?.toString().orEmpty())
+        // Buscador por descripción o ubicación
+        binding.etBuscarDescripcionOUbicacion.addTextChangedListener(
+            object : android.text.TextWatcher {
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int
+                ) {
+                }
+
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int
+                ) {
+                    viewModel.actualizarBusqueda(s?.toString().orEmpty())
+                }
+
+                override fun afterTextChanged(s: android.text.Editable?) {}
             }
-
-            override fun afterTextChanged(s: Editable?) {}
-        })
-
-        // Se eliminó el listener del botón de crear aquí.
+        )
     }
 
     private fun cambiarModoYActualizarUI(
@@ -189,12 +193,13 @@ object MuroConfigurator {
             binding.btnTareasAsignadas,
             binding.btnTareasRealizadas
         )
+
         botones.forEach { btn ->
             btn.alpha = if (btn == botonActivo) 1f else 0.5f
             btn.setTextColor(
                 ContextCompat.getColor(
                     botonActivo.context,
-                    cl.unab.proyecto_final_android.R.color.white
+                    R.color.white
                 )
             )
         }
@@ -207,41 +212,65 @@ object MuroConfigurator {
     ) {
         val mostrarSupervisor = (modo == ModoMuro.ASIGNADAS && esAdmin)
         binding.spFiltroSupervisor.visibility = if (mostrarSupervisor) View.VISIBLE else View.GONE
+
+        // El filtro de fecha siempre visible
         binding.layoutFiltroFechas.visibility = View.VISIBLE
     }
 
-// Dentro de MuroConfigurator.kt
+    // ---------- BOTTOM NAV ----------
 
-    fun configurarBottomNav(activity: MuroTareasActivity, bottomNav: BottomNavigationView, rolUsuario: String, usernameActual: String) {
-        // ...
+    fun configurarBottomNav(
+        activity: MuroTareasActivity,
+        bottomNav: BottomNavigationView,
+        rolUsuario: String,
+        usernameActual: String
+    ) {
+        // Dejar marcado este ítem porque estamos en el muro
+        bottomNav.selectedItemId = R.id.nav_muro_tareas
+
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_crear_tarea -> {
-                    // Roles autorizados para crear: ADMINISTRADOR y CREAR_TAREA
-                    val puedeCrear = rolUsuario == LoginActivity.ROL_ADMIN || rolUsuario == "crear_tarea" // Ajusta el string si es diferente
+                    val puedeCrear =
+                        rolUsuario == LoginActivity.ROL_ADMIN || rolUsuario == LoginActivity.ROL_CREAR
 
                     if (puedeCrear) {
-                        activity.startActivity(Intent(activity, CrearTareaActivity::class.java).apply {
-                            putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
-                            putExtra(LoginActivity.EXTRA_USERNAME, usernameActual)
-                        })
+                        activity.startActivity(
+                            Intent(activity, CrearTareaActivity::class.java).apply {
+                                putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
+                                putExtra(LoginActivity.EXTRA_USERNAME, usernameActual)
+                            }
+                        )
                     } else {
-                        Toast.makeText(activity, "No tienes permisos para crear tareas", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            activity,
+                            "No tienes permisos para crear tareas",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                     true
                 }
-                // ... (otros items del nav)
+
+                R.id.nav_muro_tareas -> {
+                    // Ya estamos aquí
+                    true
+                }
+
+                R.id.nav_usuario -> {
+                    mostrarDialogoCerrarSesion(activity)
+                    true
+                }
+
                 else -> false
             }
         }
     }
 
-
     private fun mostrarDialogoCerrarSesion(activity: MuroTareasActivity) {
         AlertDialog.Builder(activity)
-            .setTitle("Cerrar Sesión")
+            .setTitle("Cerrar sesión")
             .setMessage("¿Estás seguro que deseas cerrar tu sesión actual?")
-            .setPositiveButton("Cerrar Sesión") { _, _ ->
+            .setPositiveButton("Cerrar sesión") { _, _ ->
                 val intent = Intent(activity, LoginActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 }
@@ -252,105 +281,201 @@ object MuroConfigurator {
             .show()
     }
 
-    // -------- EDICIÓN / ELIMINACIÓN ----------------
+    // ---------- EDICIÓN / ELIMINACIÓN ----------
 
-    fun confirmarEliminacionTarea(context: Context, viewModel: TareasViewModel, tarea: Tarea) {
+    fun confirmarEliminacionTarea(
+        context: Context,
+        viewModel: TareasViewModel,
+        tarea: Tarea
+    ) {
         AlertDialog.Builder(context)
-            .setTitle("Confirmar Eliminación")
-            .setMessage("¿Estás seguro de que deseas eliminar la tarea #${tarea.id} permanentemente?")
+            .setTitle("Confirmar eliminación")
+            .setMessage("¿Estás seguro de que deseas eliminar la tarea #${tarea.id}?")
             .setPositiveButton("Eliminar") { _, _ ->
                 viewModel.eliminarTarea(tarea) { ok, error ->
-                    if (ok) Toast.makeText(context, "Tarea eliminada con éxito.", Toast.LENGTH_SHORT).show()
-                    else Toast.makeText(context, "Error al eliminar: ${error}", Toast.LENGTH_LONG).show()
+                    if (ok) {
+                        Toast.makeText(context, "Tarea eliminada con éxito", Toast.LENGTH_SHORT)
+                            .show()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Error al eliminar: $error",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             }
             .setNegativeButton("Cancelar", null)
             .show()
     }
 
-    fun mostrarDialogoEditarTarea(context: Context, viewModel: TareasViewModel, tarea: Tarea) {
-        val view = (context as MuroTareasActivity).layoutInflater.inflate(cl.unab.proyecto_final_android.R.layout.dialog_editar_tarea, null)
-        val etDesc = view.findViewById<AppCompatEditText>(cl.unab.proyecto_final_android.R.id.etDescripcionEditar)
-        val etUbi = view.findViewById<AppCompatEditText>(cl.unab.proyecto_final_android.R.id.etUbicacionEditar)
-        val spPiso = view.findViewById<Spinner>(cl.unab.proyecto_final_android.R.id.spPisoEditar)
+    fun mostrarDialogoEditarTarea(
+        context: Context,
+        viewModel: TareasViewModel,
+        tarea: Tarea
+    ) {
+        val activity = context as MuroTareasActivity
+        val view = activity.layoutInflater.inflate(R.layout.dialog_editar_tarea, null)
 
-        // ...
+        val etDesc = view.findViewById<AppCompatEditText>(R.id.et_descripcion_editar)
+        val etUbi = view.findViewById<AppCompatEditText>(R.id.et_ubicacion_editar)
+        val spPiso = view.findViewById<Spinner>(R.id.sp_piso_editar)
+
+        // Valores actuales
         etDesc.setText(tarea.descripcion)
         etUbi.setText(tarea.ubicacion)
 
+        // Lista de pisos (mismo formato que usas en el muro: "Piso 6", "Piso -1", etc.)
         val pisos = mutableListOf<String>()
         for (i in 6 downTo 1) pisos.add("Piso $i")
         for (i in -1 downTo -6) pisos.add("Piso $i")
 
-        val adp = ArrayAdapter(context, android.R.layout.simple_spinner_item, pisos)
-
+        val adp = ArrayAdapter(context, android.R.layout.simple_spinner_item, pisos).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
         spPiso.adapter = adp
+
+        // Seleccionar el piso actual si calza con la lista
         val idx = pisos.indexOfFirst { it.equals(tarea.piso, ignoreCase = true) }
         if (idx >= 0) spPiso.setSelection(idx)
-        // ...
 
         AlertDialog.Builder(context)
             .setTitle("Editar tarea")
             .setView(view)
             .setPositiveButton("Guardar") { _, _ ->
+                val nuevaDescripcion = etDesc.text?.toString()?.trim().orEmpty()
+                val nuevaUbicacion = etUbi.text?.toString()?.trim().orEmpty()
+
+                // 👇 Aquí nos aseguramos que sea SIEMPRE String no nulo
+                val nuevoPiso: String =
+                    spPiso.selectedItem?.toString()
+                        ?: tarea.piso
+                        ?: "Piso 1"  // valor seguro por si ambos vienen nulos
+
+                if (nuevaDescripcion.isBlank()) {
+                    Toast.makeText(context, "La descripción no puede estar vacía", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                if (nuevaUbicacion.isBlank()) {
+                    Toast.makeText(context, "La ubicación no puede estar vacía", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                viewModel.actualizarTarea(
+                    tarea = tarea,
+                    nuevaDescripcion = nuevaDescripcion,
+                    nuevaUbicacion = nuevaUbicacion,
+                    nuevoPiso = nuevoPiso   // 👉 ahora es String, no String?
+                ) { ok, error ->
+                    if (ok) {
+                        Toast.makeText(context, "Tarea actualizada", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Error al actualizar: ${error ?: "desconocido"}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
             }
             .setNegativeButton("Cancelar", null)
             .show()
     }
 
-    // --------- SWIPE------------
 
-// Dentro de MuroConfigurator.kt
+    // ---------- SWIPE (ASIGNAR / RECHAZAR) SOLO ADMIN ----------
 
-    fun configurarSwipeConRol(activity: MuroTareasActivity, rv: RecyclerView, adapter: TareaAdapter, viewModel: TareasViewModel, esAdmin: Boolean) {
-
-        // Solo si el usuario es Admin, configuramos la funcionalidad de swipe
+    fun configurarSwipeConRol(
+        activity: MuroTareasActivity,
+        rv: RecyclerView,
+        adapter: TareaAdapter,
+        viewModel: TareasViewModel,
+        esAdmin: Boolean
+    ) {
+        // Solo el admin tiene swipe
         if (!esAdmin) return
 
-        val callback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
-            // ... (código existente del callback)
+        val callback = object :
+            ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean = false
+
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.bindingAdapterPosition
-                val tarea = adapter.obtenerTareaEnPosicion(position) ?: return
+                val tarea = adapter.obtenerTareaEnPosicion(position)
 
-                // Si llegamos aquí, ya sabemos que es Admin, pero mantenemos la verificación por seguridad
+                if (tarea == null) {
+                    adapter.notifyItemChanged(position)
+                    return
+                }
+
+                // Si NO es admin, por seguridad, cancelamos
                 if (!esAdmin) {
                     adapter.notifyItemChanged(position)
                     return
                 }
 
-                // ... (lógica existente para confirmarRechazoTarea y mostrarDialogoAsignarSupervisor)
-                if (direction == ItemTouchHelper.LEFT) confirmarRechazoTarea(activity, viewModel, tarea, position)
-                else mostrarDialogoAsignarSupervisor(activity, viewModel, tarea)
+                if (direction == ItemTouchHelper.LEFT) {
+                    // Rechazar / eliminar visualmente
+                    confirmarRechazoTarea(activity, viewModel, tarea)
+                } else {
+                    // Asignar o reasignar
+                    mostrarDialogoAsignarSupervisor(activity, viewModel, tarea)
+                }
 
+                // Volver a dibujar el item (para que no quede "swipeado")
                 adapter.notifyItemChanged(position)
             }
         }
+
         ItemTouchHelper(callback).attachToRecyclerView(rv)
     }
 
-    private fun confirmarRechazoTarea(context: Context, viewModel: TareasViewModel, tarea: Tarea, position: Int?) {
+    private fun confirmarRechazoTarea(
+        context: Context,
+        viewModel: TareasViewModel,
+        tarea: Tarea
+    ) {
         AlertDialog.Builder(context)
             .setTitle("Eliminar tarea")
             .setMessage("¿Eliminar esta solicitud?")
             .setPositiveButton("Sí") { _, _ ->
                 viewModel.rechazarTarea(tarea) { ok, error ->
-                    if (ok) Toast.makeText(context, "Tarea eliminada", Toast.LENGTH_SHORT).show()
-                    else Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+                    if (ok) {
+                        Toast.makeText(context, "Tarea eliminada", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
             .setNegativeButton("Cancelar", null)
             .show()
     }
 
-    private fun mostrarDialogoAsignarSupervisor(context: Context, viewModel: TareasViewModel, tarea: Tarea) {
+    private fun mostrarDialogoAsignarSupervisor(
+        context: Context,
+        viewModel: TareasViewModel,
+        tarea: Tarea
+    ) {
         val nombres = listaSupervisores.map { it.nombreVisible }.toTypedArray()
+
         AlertDialog.Builder(context)
             .setTitle("Asignar tarea")
             .setItems(nombres) { _, which ->
                 val sup = listaSupervisores[which]
                 viewModel.asignarTarea(tarea, sup.username) { ok, _ ->
-                    if (ok) Toast.makeText(context, "Asignada a ${sup.nombreVisible}", Toast.LENGTH_SHORT).show()
+                    if (ok) {
+                        Toast.makeText(
+                            context,
+                            "Asignada a ${sup.nombreVisible}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
             .show()
