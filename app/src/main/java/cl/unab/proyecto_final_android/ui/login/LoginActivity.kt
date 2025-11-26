@@ -4,15 +4,15 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import cl.unab.proyecto_final_android.ui.crear.CrearTareaActivity
 import cl.unab.proyecto_final_android.databinding.ActivityLoginBinding
+import cl.unab.proyecto_final_android.ui.crear.CrearTareaActivity
 import cl.unab.proyecto_final_android.ui.muro.MuroTareasActivity
 import com.google.firebase.auth.FirebaseAuth
-
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
+    private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
 
     companion object {
         const val EXTRA_ROL_USUARIO = "rolUsuario"
@@ -33,45 +33,67 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun configurarEventos() {
-        //Usar el ID correcto del botón del XML
-        binding.btnIngresar.setOnClickListener {
-            hacerLogin()
-        }
+        binding.btnIngresar.setOnClickListener { validarCampos() }
     }
 
-    private fun hacerLogin() {
-        val usuarioIngresado = binding.etCorreo.text.toString().trim()
-        val contrasenaIngresada = binding.etContrasena.text.toString().trim()
+    private fun validarCampos() {
+        val correo = binding.etCorreo.text.toString().trim()
+        val contrasena = binding.etContrasena.text.toString().trim()
 
-        val auth = FirebaseAuth.getInstance()
+        if (correo.isEmpty() || contrasena.isEmpty()) {
+            Toast.makeText(this, "Debes ingresar tus credenciales", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        // Intentar autenticar con Firebase Auth
-        auth.signInWithEmailAndPassword(usuarioIngresado, contrasenaIngresada)
-            .addOnCompleteListener(this) { task ->
+        hacerLogin(correo, contrasena)
+    }
+
+    private fun hacerLogin(correo: String, contrasena: String) {
+        auth.signInWithEmailAndPassword(correo, contrasena)
+            .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    // Autenticación exitosa, ahora determinamos el rol para la lógica de la app
-                    val rol = when {
-                        // Mantenemos la lógica 'when' para determinar el rol de la aplicación
-                        // basado en el email/contraseña simulados.
-                        usuarioIngresado.equals("crear_tarea", ignoreCase = true) -> ROL_CREAR
-                        usuarioIngresado.equals("administrador", ignoreCase = true) ||
-                                usuarioIngresado.equals("administrador@miapp.com", ignoreCase = true) -> ROL_ADMIN
-                        usuarioIngresado.equals("realizar_tarea", ignoreCase = true) -> ROL_REALIZAR
-                        else -> ROL_REALIZAR
+                    val rol = obtenerRolUsuario(correo)
+                    val esAdmin = rol == ROL_ADMIN
+
+                    if (rol == ROL_CREAR) {
+                        irACrearTarea(correo, rol, esAdmin)
+                    } else {
+                        irAMuroTareas(correo, rol, esAdmin)
                     }
 
-                    val esAdmin = (rol == ROL_ADMIN)
-
-                    // Redirigir la navegación
-                    when (rol) {
-                        ROL_CREAR -> irACrearTarea(usuarioIngresado, rol, esAdmin)
-                        ROL_ADMIN, ROL_REALIZAR -> irAMuroTareas(usuarioIngresado, rol, esAdmin)
-                    }
                 } else {
-                    // Falló la autenticación en Firebase Auth
-                    Toast.makeText(this, "Error de credenciales o de red. Intenta de nuevo.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this,
+                        "Error de credenciales. Verifica tu correo y contraseña.",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
+    }
+
+    /**
+     * Determina el rol según el correo exacto del usuario.
+     * Los correos deben coincidir con Firebase Authentication.
+     */
+    private fun obtenerRolUsuario(correo: String): String {
+        val correoLower = correo.lowercase()
+
+        return when (correoLower) {
+            "crear_tarea@miapp.com" -> ROL_CREAR
+            "administrador@miapp.com" -> ROL_ADMIN
+            "realizar_tarea@miapp.com" -> ROL_REALIZAR
+            // supervisores son equivalentes a realizar tarea
+            "delfina.cabello@miapp.com",
+            "rodrigo.reyes@miapp.com",
+            "maria.caruajulca@miapp.com",
+            "john.vilchez@miapp.com",
+            "cristian.vergara@miapp.com",
+            "enrique.mendez@miapp.com",
+            "norma.marican@miapp.com",
+            "libia.florez@miapp.com",
+            "jorge.geisbuhler@miapp.com" -> ROL_REALIZAR
+            else -> ROL_REALIZAR
+        }
     }
 
     private fun irACrearTarea(username: String, rol: String, esAdmin: Boolean) {
