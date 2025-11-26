@@ -38,6 +38,7 @@ class MuroTareasActivity : AppCompatActivity() {
     // Variables de Estado y Usuario
     private var rolUsuario: String = LoginActivity.ROL_REALIZAR
     private var usernameActual: String = ""
+    // La comprobación de rol debe ser más flexible, pero mantenemos tu lógica de "esAdmin" para los permisos
     private val esAdmin: Boolean
         get() = usernameActual.equals("administrador", ignoreCase = true) ||
                 usernameActual.equals("administrador@miapp.com", ignoreCase = true)
@@ -92,7 +93,7 @@ class MuroTareasActivity : AppCompatActivity() {
     private val crearTareaCamaraLauncher =
         registerForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
             if (success && fotoAntesUri != null) {
-                // LLAMA A LA FUNCIÓN AGREGADA ABAJO
+                // LLAMA A LA FUNCIÓN AGREGADA
                 lanzarCrearTareaActivity(fotoAntesUri!!)
             } else {
                 Toast.makeText(this, "Captura de foto cancelada o fallida.", Toast.LENGTH_SHORT).show()
@@ -104,7 +105,7 @@ class MuroTareasActivity : AppCompatActivity() {
     internal val crearTareaGaleriaLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             if (uri != null) {
-                // LLAMA A LA FUNCIÓN AGREGADA ABAJO
+                // LLAMA A LA FUNCIÓN AGREGADA
                 lanzarCrearTareaActivity(uri)
             } else {
                 Toast.makeText(this, "Selección de foto cancelada.", Toast.LENGTH_SHORT).show()
@@ -130,9 +131,10 @@ class MuroTareasActivity : AppCompatActivity() {
 
 
         // 2. Inicialización del Adapter
+        // MODIFICACIÓN: PASAMOS EL ROL COMPLETO AL ADAPTER para la lógica de visibilidad de botones
         adapter = TareaAdapter(
             tareas = emptyList(),
-            esAdmin = esAdmin,
+            rolUsuario = rolUsuario, // Pasamos el rol
             usernameActual = usernameActual,
             onResponderClick = { tarea -> intentarTomarFoto(tarea) },
             onEditarClick = { tarea -> MuroConfigurator.mostrarDialogoEditarTarea(this, viewModel, tarea) },
@@ -212,6 +214,9 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
+    // ------- FUNCIONES PARA CREAR TAREA (FOTO ANTES) -------------
+
+    // Función de entrada para la cámara (llamada desde MuroConfigurator)
     fun intentarTomarFotoParaCreacion() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             lanzarCamaraParaCreacion()
@@ -237,12 +242,13 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
+    // --- FUNCIÓN AGREGADA para manejar la navegación tras tomar/seleccionar la foto ---
     private fun lanzarCrearTareaActivity(uriFotoAntes: Uri) {
         val intent = Intent(this, CrearTareaActivity::class.java).apply {
             // Aseguramos que los datos de usuario vayan a la siguiente Activity
             putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
             putExtra(LoginActivity.EXTRA_USERNAME, usernameActual)
-            // Pasamos la URI de la foto inicial (el corazón de la corrección)
+            // Pasamos la URI de la foto inicial
             putExtra("EXTRA_FOTO_ANTES_URI", uriFotoAntes.toString())
         }
         startActivity(intent)

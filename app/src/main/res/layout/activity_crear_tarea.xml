@@ -2,179 +2,170 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/activity_crear_tarea"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/degradado_azul"
-    android:id="@+id/activity_crear_tarea"
-    >
+    android:background="@drawable/degradado_azul">
+
+    <!-- Guideline horizontal al 15% desde la parte superior -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_top"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.15"/>
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/contenedorFormulario"
+        android:id="@+id/cont_formulario"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:padding="15dp"
-        app:layout_constraintTop_toTopOf="parent"
+        android:padding="16dp"
+        app:layout_constraintTop_toBottomOf="@id/guideline_top"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/bottomNav">
+        app:layout_constraintBottom_toTopOf="@+id/bottomNav">
 
-        <!--Descripción de la tarea-->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="56dp"
-        android:gravity="center"
-        android:text="Ingresa tu solicitud de limpieza"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        app:layout_constraintBottom_toTopOf="@+id/txtDescripcion"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.934" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:text="Descripción"
-        android:textColor="@color/white"
-        app:layout_constraintBottom_toTopOf="@+id/txtDescripcion"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.036"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <EditText
-        android:id="@+id/txtDescripcion"
-        style="@style/style_TextFields"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:background="@drawable/cornertxtview"
-        android:gravity="center"
-        android:hint="Explique la situación. Ejemplo: Basurero lleno"
-        android:inputType="textEmailAddress"
-        android:textColor="@color/gris"
-        android:textSize="14sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.26" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
-        android:text="Ubicación"
-        android:textColor="@color/white"
-        app:layout_constraintBottom_toTopOf="@+id/autoCompleteUbicacion"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.036"
-        app:layout_constraintStart_toStartOf="parent" />
-
-
-        <AutoCompleteTextView
-        android:id="@+id/autoCompleteUbicacion"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:layout_marginTop="88dp"
-        android:background="@drawable/cornertxtview"
-        android:hint="Ingrese algún punto de referencia. Ejemplo: Zara"
-        android:inputType="text"
-        android:textColor="@color/gris"
-        android:textSize="14sp"
-        android:gravity="center"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/txtDescripcion" />
-
-
-        <!-- Piso con lista desplegable -->
+        <!-- El resto del formulario como antes (texto, campos, botón, etc.) -->
+        <TextView
+            android:id="@+id/tv_titulo_crear"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Ingresa tu solicitud de limpieza"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:gravity="center"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
         <TextView
-            android:id="@+id/tvPiso"
+            android:id="@+id/tv_label_descripcion"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:text="Descripción"
+            android:textColor="@color/white"
+            android:layout_marginTop="24dp"
+            app:layout_constraintTop_toBottomOf="@id/tv_titulo_crear"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <EditText
+            android:id="@+id/et_descripcion"
+            style="@style/style_TextFields"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:minHeight="50dp"
+            android:background="@drawable/cornertxtview"
+            android:gravity="start|center_vertical"
+            android:hint="Explique la situación. Ejemplo: Basurero lleno"
+            android:inputType="text|textMultiLine"
+            android:imeOptions="actionNext"
+            android:textColor="@color/gris"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/tv_label_descripcion"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <TextView
+            android:id="@+id/tv_label_ubicacion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ubicación"
+            android:textColor="@color/white"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/et_descripcion"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <AutoCompleteTextView
+            android:id="@+id/actv_ubicacion"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:minHeight="50dp"
+            android:background="@drawable/cornertxtview"
+            android:hint="Ingrese algún punto de referencia. Ejemplo: Zara"
+            android:inputType="text"
+            android:imeOptions="actionNext"
+            android:textColor="@color/gris"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/tv_label_ubicacion"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <TextView
+            android:id="@+id/tv_label_piso"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="Piso"
             android:textColor="@color/white"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.031"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/autoCompleteUbicacion" />
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/actv_ubicacion"
+            app:layout_constraintStart_toStartOf="parent"/>
 
         <Spinner
-            android:id="@+id/spPiso"
+            android:id="@+id/sp_piso"
             android:layout_width="0dp"
-            android:layout_height="50dp"
-            android:layout_marginTop="4dp"
+            android:layout_height="wrap_content"
+            android:minHeight="50dp"
             android:background="@drawable/cornertxtview"
-            android:gravity="center"
-            app:layout_constraintTop_toBottomOf="@id/tvPiso"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/tv_label_piso"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <ImageButton
+            android:id="@+id/btn_agregar_foto"
+            android:layout_width="120dp"
+            android:layout_height="100dp"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/cornertxtview"
+            android:padding="30dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/camera_icon"
+            app:layout_constraintTop_toBottomOf="@id/sp_piso"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
         <Button
-            android:id="@+id/btnCrearSolicitud"
+            android:id="@+id/btn_crear_solicitud"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="17dp"
+            android:layout_marginTop="24dp"
             android:backgroundTint="@color/verde"
             android:ems="10"
             android:text="Ingresar solicitud"
             android:textSize="18sp"
             android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
+            android:imeOptions="actionDone"
+            app:layout_constraintTop_toBottomOf="@id/btn_agregar_foto"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/btnImgAgregarFotografias"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintEnd_toEndOf="parent"/>
 
-    <ImageButton
-        android:id="@+id/btnImgAgregarFotografias"
-        android:layout_width="120dp"
-        android:layout_height="100dp"
-        android:layout_marginTop="32dp"
-        android:background="@drawable/cornertxtview"
-        android:padding="30dp"
-        android:scaleType="centerInside"
-        android:src="@drawable/camera_icon"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/spPiso" />
-
-    <ProgressBar
-        android:id="@+id/progressBarCarga"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:indeterminate="true"
-        android:visibility="gone"
-        android:indeterminateTint="@android:color/white"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.9" />
-
+        <ProgressBar
+            android:id="@+id/progressBar_carga"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:indeterminate="true"
+            android:visibility="gone"
+            android:indeterminateTint="@android:color/white"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/btn_crear_solicitud"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"
-        app:itemActiveIndicatorStyle="@style/Widget.Material3.BottomNavigationView.ActiveIndicator"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@color/white"
+        app:itemActiveIndicatorStyle="@style/Widget.Material3.BottomNavigationView.ActiveIndicator"
         app:menu="@menu/bottom_nav_menu"
         app:itemIconTint="@null"
         app:itemTextColor="@color/nav_item_selector"
         app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>
+

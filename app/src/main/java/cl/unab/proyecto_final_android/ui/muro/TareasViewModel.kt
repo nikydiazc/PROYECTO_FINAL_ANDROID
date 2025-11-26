@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import cl.unab.proyecto_final_android.Tarea
 import cl.unab.proyecto_final_android.data.ModoMuro
 import cl.unab.proyecto_final_android.data.TareaRepository
+import cl.unab.proyecto_final_android.ui.login.LoginActivity
+import cl.unab.proyecto_final_android.util.MuroConfigurator
 import com.google.firebase.Timestamp
 
 // --------- ESTRUCTURA DE ESTADO DE LA UI ------------
@@ -25,7 +27,8 @@ data class MuroUiState(
 // ------------- VIEWMODEL ---------------
 class TareasViewModel(
     private val tareaRepository: TareaRepository,
-    private val esAdmin: Boolean,
+    // Eliminamos esAdmin, usaremos solo el rol
+    private val rolUsuario: String,
     private val usernameActual: String
 ) : ViewModel() {
 
@@ -37,40 +40,84 @@ class TareasViewModel(
         cargarTareas()
     }
 
-    // ---------- LÓGICA DE CARGA Y FILTROS (CORREGIDO) -------
-    /**
-     * Función principal para cargar tareas usando los filtros del estado actual (uiState).
-     * Esta función reemplaza a la antigua 'cargarTareasDelMuro'.
-     */
+    // ---------- LÓGICA DE CARGA Y FILTROS (ACTUALIZADA CON PERMISOS) -------
+
     fun cargarTareas() {
         val estadoActual = _uiState.value ?: return
 
         // 1. ANTES: MUESTRA EL PROGRESS BAR
         _uiState.value = estadoActual.copy(cargando = true, error = null)
 
-        // 2. Llama al Repositorio usando los filtros del estado
+        // 2. DETERMINAR LOS PARÁMETROS DE FILTRADO POR ROL
+
+        // El repositorio necesita saber a quién debe buscar tareas asignadas.
+        var filtroAsignadoRepo: String? = null
+        var modoMuroRepo = estadoActual.modoMuro
+
+        val esSupervisor = MuroConfigurator.listaSupervisores.any { it.username == usernameActual }
+
+        when (rolUsuario) {
+
+            LoginActivity.ROL_ADMIN -> {
+                // El Admin puede ver todo, el filtro de supervisor se aplica desde el spinner (estadoActual.filtroSupervisor)
+                filtroAsignadoRepo = estadoActual.filtroSupervisor
+            }
+
+            // Los usuarios 'realizar_tarea' y 'crear_tarea' no tienen la opción de filtrar por supervisor
+            // y ven las tareas asignadas a todos los realizadores/supervisores.
+            // Los supervisores específicos (delfina.cabello) también caen aquí,
+            // pero si están en modo ASIGNADAS, solo ven las suyas.
+
+            else -> {
+                // Si el modo es ASIGNADAS, restringimos la vista.
+                if (estadoActual.modoMuro == ModoMuro.ASIGNADAS) {
+
+                    if (esSupervisor) {
+                        // Supervisor: Solo ve tareas asignadas a sí mismo.
+                        filtroAsignadoRepo = usernameActual
+                    }
+                    // Nota: Los roles como "crear_tarea" o "realizar_tarea" verán el muro asignado sin
+                    // un filtro específico si no son supervisores. El `TareaRepository` deberá manejar
+                    // qué tareas son consideradas 'asignadas a nadie' vs 'asignadas a un grupo' si es necesario.
+
+                    // Aquí, asumimos que si no es supervisor ni admin, y está en modo ASIGNADAS,
+                    // verá las tareas asignadas a cualquier usuario general (incluido él mismo si usa el rol general).
+                    // Pero para el caso de supervisor específico, SOBRESCRIBIMOS el filtro de asignación.
+                }
+
+                // Si el modo es PENDIENTES, no se aplica ningún filtro de asignación.
+            }
+        }
+
+        // Si el modo de muro es PENDIENTES o REALIZADAS, aseguramos que el filtro de asignación sea nulo,
+        // ya que la consulta debe ser general.
+        if (estadoActual.modoMuro == ModoMuro.PENDIENTES || estadoActual.modoMuro == ModoMuro.REALIZADAS) {
+            filtroAsignadoRepo = null
+        }
+
+
+        // 3. Llama al Repositorio con los parámetros definidos
         tareaRepository.getTareas(
-            modo = estadoActual.modoMuro,
+            modo = modoMuroRepo,
             piso = estadoActual.filtroPiso,
             busqueda = estadoActual.filtroBusqueda,
-            asignadaA = estadoActual.filtroSupervisor,
+            // Usamos el filtro específico para la consulta
+            asignadaA = filtroAsignadoRepo,
             fechaDesde = estadoActual.filtroFechaDesde,
             fechaHasta = estadoActual.filtroFechaHasta,
             callback = { tareas, error ->
 
-                // 3. DESPUÉS: Manejo de Respuesta
-
+                // 4. DESPUÉS: Manejo de Respuesta
                 val nuevoEstado = if (tareas != null) {
                     // ÉXITO: Actualiza la lista
                     estadoActual.copy(tareas = tareas, error = null)
                 } else {
                     // FALLO: Almacena el error
                     val errorMessage = "Error al cargar tareas: ${error ?: "Error desconocido"}"
-                    // En caso de error, la lista queda vacía
                     estadoActual.copy(tareas = emptyList(), error = errorMessage)
                 }
 
-                // 4. OCULTAR EL PROGRESS BAR (cargando = false)
+                // 5. OCULTAR EL PROGRESS BAR (cargando = false)
                 _uiState.value = nuevoEstado.copy(cargando = false)
             }
         )
@@ -100,7 +147,7 @@ class TareasViewModel(
         }
     }
 
-    // ---------------------------------- LÓGICA DE FILTROS Y ESTADO ----------------------------------
+    // ----------------- LÓGICA DE FILTROS Y ESTADO ---------
 
     // Las funciones de filtro ahora solo actualizan el UIState y luego llaman a cargarTareas()
 
@@ -115,6 +162,7 @@ class TareasViewModel(
     }
 
     fun cambiarSupervisor(supervisorUsername: String?) {
+        // Este filtro solo debe ser usado por el Admin (a través del spinner)
         _uiState.value = _uiState.value?.copy(filtroSupervisor = supervisorUsername)
         cargarTareas()
     }

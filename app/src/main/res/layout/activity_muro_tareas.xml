@@ -2,20 +2,28 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/activity_muro_tareas"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/degradado_azul"
-    >
+    android:background="@drawable/degradado_azul">
+
+    <!-- Guideline para espacio superior adaptativo -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_muro_top"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.06"/>
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/Muro"
+        android:id="@+id/cont_muro"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:padding="15dp"
-        app:layout_constraintTop_toTopOf="parent"
+        android:padding="16dp"
+        app:layout_constraintTop_toBottomOf="@+id/guideline_muro_top"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/bottomNav">
+        app:layout_constraintBottom_toTopOf="@+id/bottomNav">
 
         <LinearLayout
             android:id="@+id/layoutFiltrosEstado"
@@ -24,8 +32,7 @@
             android:orientation="horizontal"
             android:gravity="center"
             android:weightSum="3"
-            android:paddingTop="40dp"
-            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="16dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
@@ -36,65 +43,67 @@
                 android:layout_weight="1"
                 android:text="Pendientes"
                 android:textStyle="bold"
-                android:backgroundTint="@color/rojo" />
+                android:backgroundTint="@color/rojo"
+                android:textColor="@color/white"/>
 
             <Button
                 android:id="@+id/btnTareasAsignadas"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
                 android:layout_weight="1"
+                android:layout_marginStart="8dp"
                 android:text="Asignadas"
                 android:textStyle="bold"
                 android:backgroundTint="@color/naranjo"
-                android:textColor="@color/white" />
+                android:textColor="@color/white"/>
 
             <Button
                 android:id="@+id/btnTareasRealizadas"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
                 android:layout_weight="1"
+                android:layout_marginStart="8dp"
                 android:text="Realizadas"
                 android:textStyle="bold"
                 android:backgroundTint="@color/verde"
-                android:textColor="@color/white" />
+                android:textColor="@color/white"/>
         </LinearLayout>
 
         <EditText
             android:id="@+id/etBuscarDescripcionOUbicacion"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:layout_minHeight="60dp"
             android:background="@drawable/cornertxtview"
             android:hint="Buscar por descripción o ubicación"
             android:paddingHorizontal="12dp"
             android:textColor="@color/gris"
             android:textSize="14sp"
-            app:layout_constraintTop_toBottomOf="@id/layoutFiltrosEstado"
+            app:layout_constraintTop_toBottomOf="@+id/layoutFiltrosEstado"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"/>
 
         <Spinner
             android:id="@+id/spFiltroSupervisor"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
+            android:layout_minHeight="40dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/cornertxtview"
             android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/etBuscarDescripcionOUbicacion"
+            app:layout_constraintTop_toBottomOf="@+id/etBuscarDescripcionOUbicacion"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
-
+            app:layout_constraintEnd_toEndOf="parent"/>
 
         <LinearLayout
             android:id="@+id/layoutFiltrosDual"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:layout_marginTop="8dp"
+            android:orientation="horizontal"
             android:weightSum="2"
-            app:layout_constraintTop_toBottomOf="@id/spFiltroSupervisor"
+            app:layout_constraintTop_toBottomOf="@+id/spFiltroSupervisor"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
@@ -111,15 +120,15 @@
                     android:layout_marginBottom="4dp"
                     android:text="Filtrar por Piso:"
                     android:textColor="@color/white"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"/>
 
                 <Spinner
                     android:id="@+id/spFiltroPiso"
                     android:layout_width="match_parent"
-                    android:layout_height="40dp"
-                    android:background="@drawable/cornertxtview" />
+                    android:layout_height="wrap_content"
+                    android:layout_minHeight="40dp"
+                    android:background="@drawable/cornertxtview"/>
             </LinearLayout>
-
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -133,15 +142,14 @@
                     android:layout_marginBottom="4dp"
                     android:text="Filtrar por Fecha:"
                     android:textColor="@color/white"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"/>
 
                 <LinearLayout
                     android:id="@+id/layoutFiltroFechas"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:visibility="visible" >
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/tvFechaDesde"
@@ -149,6 +157,7 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="4dp"
+                        android:layout_minHeight="40dp"
                         android:background="@drawable/cornertxtview"
                         android:hint="Desde:"
                         android:paddingStart="10dp"
@@ -165,6 +174,7 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
+                        android:layout_minHeight="40dp"
                         android:background="@drawable/cornertxtview"
                         android:hint="Hasta:"
                         android:paddingStart="10dp"
@@ -182,7 +192,7 @@
                         android:src="@drawable/ic_search"
                         android:background="@drawable/corner_button_green"
                         android:scaleType="centerInside"
-                        android:contentDescription="Aplicar filtro de fecha" />
+                        android:contentDescription="Aplicar filtro de fecha"/>
 
                     <ImageButton
                         android:id="@+id/btnLimpiarFiltroFecha"
@@ -192,7 +202,7 @@
                         android:src="@android:drawable/ic_menu_close_clear_cancel"
                         android:background="@drawable/corner_button_red"
                         android:scaleType="centerInside"
-                        android:contentDescription="Limpiar filtro" />
+                        android:contentDescription="Limpiar filtro"/>
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -202,10 +212,10 @@
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:paddingTop="8dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/layoutFiltrosDual"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/layoutFiltrosDual" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
         <ProgressBar
             android:id="@+id/progressBarMuro"
@@ -215,21 +225,20 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
-
+            app:layout_constraintEnd_toEndOf="parent"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"
-        app:itemActiveIndicatorStyle="@style/Widget.Material3.BottomNavigationView.ActiveIndicator"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@color/white"
+        app:itemActiveIndicatorStyle="@style/Widget.Material3.BottomNavigationView.ActiveIndicator"
         app:menu="@menu/bottom_nav_menu"
         app:itemIconTint="@null"
         app:itemTextColor="@color/nav_item_selector"
         app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

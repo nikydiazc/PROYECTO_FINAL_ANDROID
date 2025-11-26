@@ -210,32 +210,27 @@ object MuroConfigurator {
         binding.layoutFiltroFechas.visibility = View.VISIBLE
     }
 
+// Dentro de MuroConfigurator.kt
+
     fun configurarBottomNav(activity: MuroTareasActivity, bottomNav: BottomNavigationView, rolUsuario: String, usernameActual: String) {
-
-        bottomNav.itemIconTintList = null
-
-        bottomNav.selectedItemId = R.id.nav_muro_tareas
+        // ...
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_crear_tarea -> {
-                    // FLUJO CORREGIDO: Navegamos directamente a CrearTareaActivity
-                    if (rolUsuario == LoginActivity.ROL_ADMIN) {
+                    // Roles autorizados para crear: ADMINISTRADOR y CREAR_TAREA
+                    val puedeCrear = rolUsuario == LoginActivity.ROL_ADMIN || rolUsuario == "crear_tarea" // Ajusta el string si es diferente
+
+                    if (puedeCrear) {
                         activity.startActivity(Intent(activity, CrearTareaActivity::class.java).apply {
                             putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
                             putExtra(LoginActivity.EXTRA_USERNAME, usernameActual)
                         })
                     } else {
-                        Toast.makeText(activity, "Solo el administrador puede crear tareas", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(activity, "No tienes permisos para crear tareas", Toast.LENGTH_SHORT).show()
                     }
                     true
                 }
-                R.id.nav_muro_tareas -> {
-                    true // Permanece aquí
-                }
-                R.id.nav_usuario -> {
-                    mostrarDialogoCerrarSesion(activity)
-                    false
-                }
+                // ... (otros items del nav)
                 else -> false
             }
         }
@@ -305,20 +300,26 @@ object MuroConfigurator {
 
     // --------- SWIPE------------
 
-    fun configurarSwipeConRol(activity: MuroTareasActivity, rv: RecyclerView, adapter: TareaAdapter, viewModel: TareasViewModel, esAdmin: Boolean) {
-        val callback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
-            override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean = false
+// Dentro de MuroConfigurator.kt
 
+    fun configurarSwipeConRol(activity: MuroTareasActivity, rv: RecyclerView, adapter: TareaAdapter, viewModel: TareasViewModel, esAdmin: Boolean) {
+
+        // Solo si el usuario es Admin, configuramos la funcionalidad de swipe
+        if (!esAdmin) return
+
+        val callback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+            // ... (código existente del callback)
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.bindingAdapterPosition
                 val tarea = adapter.obtenerTareaEnPosicion(position) ?: return
 
+                // Si llegamos aquí, ya sabemos que es Admin, pero mantenemos la verificación por seguridad
                 if (!esAdmin) {
-                    Toast.makeText(activity, "Solo el administrador puede gestionar tareas", Toast.LENGTH_SHORT).show()
                     adapter.notifyItemChanged(position)
                     return
                 }
 
+                // ... (lógica existente para confirmarRechazoTarea y mostrarDialogoAsignarSupervisor)
                 if (direction == ItemTouchHelper.LEFT) confirmarRechazoTarea(activity, viewModel, tarea, position)
                 else mostrarDialogoAsignarSupervisor(activity, viewModel, tarea)
 

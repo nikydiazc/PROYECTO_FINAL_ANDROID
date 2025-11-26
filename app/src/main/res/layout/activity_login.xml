@@ -2,122 +2,109 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_login"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
-    android:background="@drawable/degradado_azul"
-    android:id="@+id/activity_login">
+    android:background="@drawable/degradado_azul">
 
-    <TextView
-        android:id="@+id/txtBienvenido"
+    <!-- Guideline horizontal para espacio superior adaptativo -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_login_top"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="60dp"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.2" />
+
+    <TextView
+        android:id="@+id/tv_bienvenido"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:text="Bienvenido/a"
+        android:gravity="center"
         android:textColor="@color/white"
         android:textSize="30sp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@+id/txtIngresaTuUsuario"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.499"
+        app:layout_constraintTop_toBottomOf="@id/guideline_login_top"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!--Ingreso de correo o usuario-->
+    <TextView
+        android:id="@+id/tv_label_usuario"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Ingresa tu correo electrónico o usuario"
+        android:textColor="@color/white"
+        app:layout_constraintTop_toBottomOf="@id/tv_bienvenido"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <EditText
-        android:id="@+id/etCorreo"
+        android:id="@+id/et_correo"
         style="@style/style_TextFields"
         android:layout_width="0dp"
-        android:layout_height="50dp"
+        android:layout_height="wrap_content"
+        android:minHeight="50dp"
         android:background="@drawable/cornertxtview"
-        android:ems="10"
-        android:gravity="center"
-        android:hint="Correo eléctronico o usuario"
+        android:hint="Correo electrónico o usuario"
         android:inputType="textEmailAddress"
+        android:imeOptions="actionNext"
         android:textColor="@color/gris"
         android:textSize="16sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tv_label_usuario"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.423" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
-        android:id="@+id/txtIngresaTuUsuario"
+        android:id="@+id/tv_label_contrasena"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="9dp"
-        android:text="Ingresa tu correo eléctronico o usuario"
-        android:textColor="@color/white"
-        app:layout_constraintBottom_toTopOf="@+id/etCorreo"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <!--Ingreso de contraseña-->
-
-    <TextView
-        android:id="@+id/txtIngresaTuContraseña"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="5dp"
+        android:layout_marginTop="16dp"
         android:text="Ingresa la contraseña"
         android:textColor="@color/white"
-        app:layout_constraintBottom_toTopOf="@+id/tilContrasena"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintTop_toBottomOf="@id/et_correo"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Contenedor con icono de ojo, SIN hint flotante -->
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilContrasena"
+        android:id="@+id/til_contrasena"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:backgroundTint="@android:color/transparent"
+        android:layout_marginTop="8dp"
         app:endIconMode="password_toggle"
         app:endIconTint="@color/blue"
         app:hintEnabled="false"
         app:boxBackgroundMode="none"
-        android:hint="Contraseña"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintTop_toBottomOf="@id/tv_label_contrasena"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/etCorreo"
-        app:layout_constraintVertical_bias="0.141">
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <com.google.android.material.textfield.TextInputEditText
-        android:id="@+id/etContrasena"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:background="@drawable/cornertxtview"
-        android:ems="10"
-        android:gravity="center"
-        android:hint="Contraseña"
-        android:inputType="textPassword"
-        android:textColor="@color/gris"
-        android:textSize="16sp" />
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_contrasena"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="50dp"
+            android:background="@drawable/cornertxtview"
+            android:hint="Contraseña"
+            android:inputType="textPassword"
+            android:imeOptions="actionDone"
+            android:textColor="@color/gris"
+            android:textSize="16sp" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
-        <!--Botón de login-->
-        <Button
-            android:id="@+id/btnIngresar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:layout_marginBottom="60dp"
-            android:backgroundTint="@color/verde"
-            android:ems="10"
-            android:text="Ingresar"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.498"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tilContrasena" />
+    <Button
+        android:id="@+id/btn_ingresar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="32dp"
+        android:backgroundTint="@color/verde"
+        android:text="Ingresar"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/til_contrasena"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,42 +1,133 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
+<androidx.constraintlayout.widget.ConstraintLayout
+xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:app="http://schemas.android.com/apk/res-auto"
+android:id="@+id/dialog_editar_tarea_root"
+android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="16dp"
+    android:background="@color/white"
+    >
 
-    <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/etDescripcionEditar"
-        android:layout_width="match_parent"
+    <!-- Descripción -->
+    <TextView
+        android:id="@+id/tv_descripcion_label"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Descripción"
+        android:text="Descripción"
+        android:textStyle="bold"
+        android:textColor="@color/black"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+    />
+
+        <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/et_descripcion_editar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Explique la situación"
         android:inputType="textMultiLine"
         android:minLines="2"
         android:maxLines="4"
-        android:padding="8dp" />
+        android:padding="8dp"
+            android:gravity="center"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        style="@style/style_TextFields"
+        app:layout_constraintTop_toBottomOf="@id/tv_descripcion_label" app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+    />
+
+    <!-- Ubicación -->
+    <TextView
+        android:id="@+id/tv_ubicacion_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Ubicación"
+        android:textStyle="bold"
+        android:textColor="@color/black"
+        app:layout_constraintTop_toBottomOf="@id/et_descripcion_editar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+    />
 
     <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/etUbicacionEditar"
-        android:layout_width="match_parent"
+        android:id="@+id/et_ubicacion_editar"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Ubicación"
+        android:hint="Ingrese algún punto de referencia"
         android:inputType="text"
         android:padding="8dp"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="8dp"
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        style="@style/style_TextFields"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@id/tv_ubicacion_label"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+            />
 
-    <!-- Piso como lista desplegable -->
+    <!-- Piso selector -->
     <TextView
-        android:id="@+id/tvPisoTituloEditar"
-        android:layout_width="wrap_content"
+        android:id="@+id/tv_piso_label"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="Piso"
-        android:layout_marginTop="12dp" />
+        android:textStyle="bold"
+        android:textColor="@color/black"
+        app:layout_constraintTop_toBottomOf="@id/et_ubicacion_editar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+    />
 
     <Spinner
-        android:id="@+id/spPisoEditar"
-        android:layout_width="match_parent"
+        android:id="@+id/sp_piso_editar"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp" />
+        android:layout_marginTop="8dp"
+        android:minHeight="48dp"
+        android:background="@drawable/cornertxtview"
+        app:layout_constraintTop_toBottomOf="@id/tv_piso_label"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        />
 
-</LinearLayout>
+    <!-- Botones (Guardar/Cancelar) -->
+    <LinearLayout
+        android:id="@+id/layout_buttons"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal"
+        android:gravity="end"
+        app:layout_constraintTop_toBottomOf="@id/sp_piso_editar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+    <Button
+        android:id="@+id/btn_cancelar_editar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cancelar"
+        android:backgroundTint="@color/blue"
+        android:layout_marginEnd="16dp"
+    />
+
+    <Button
+        android:id="@+id/btn_guardar_editar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Guardar"
+        android:backgroundTint="@color/verde"
+        android:textColor="@color/white"
+    />
+
+    </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
