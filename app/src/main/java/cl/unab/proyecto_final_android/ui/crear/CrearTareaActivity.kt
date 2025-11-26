@@ -26,15 +26,19 @@ class CrearTareaActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var firestore: FirebaseFirestore
     private lateinit var storage: FirebaseStorage
+
     private var imagenUri: Uri? = null
     private var rolUsuario: String = LoginActivity.ROL_CREAR
+    private var username: String = ""
 
-    // Selector de imagen de galería
+    private val TEXTO_PISO_PLACEHOLDER = "Selecciona piso"
+
+    // Lanzador para seleccionar imagen
     private val seleccionarImagenLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
                 imagenUri = uri
-                binding.btnImgAgregarFotografias.setImageURI(uri)
+                binding.btnAgregarFoto.setImageURI(uri)
             }
         }
 
@@ -43,40 +47,44 @@ class CrearTareaActivity : AppCompatActivity() {
         binding = ActivityCrearTareaBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // FORZAR ELIMINACIÓN DEL TINT (los iconos de la barra quedaban de un solo color)
         binding.bottomNav.itemIconTintList = null
-
-        rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
-            ?: LoginActivity.ROL_CREAR
-
-
-        configurarBottomNav()
 
         auth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
         storage = FirebaseStorage.getInstance()
 
+        rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
+            ?: LoginActivity.ROL_CREAR
+
+        username = intent.getStringExtra(LoginActivity.EXTRA_USERNAME)
+            ?: auth.currentUser?.email
+                    ?: ""
+
+        configurarBottomNav()
         configurarSpinnerPiso()
         configurarEventos()
     }
 
     private fun configurarBottomNav() {
         val bottomNav = binding.bottomNav
-
-        bottomNav.selectedItemId = R.id.nav_crear_tarea // esta es la vista actual
+        bottomNav.selectedItemId = R.id.nav_crear_tarea
 
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_crear_tarea -> {
-                    true
-                }
+                R.id.nav_crear_tarea -> true
                 R.id.nav_muro_tareas -> {
-                    startActivity(
-                        Intent(this, MuroTareasActivity::class.java).apply {
-                            putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
-                        }
-                    )
-                    true
+                    if (rolUsuario == LoginActivity.ROL_CREAR) {
+                        toast("No tienes permisos para ver el muro de tareas.")
+                        false
+                    } else {
+                        startActivity(
+                            Intent(this, MuroTareasActivity::class.java).apply {
+                                putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
+                                putExtra(LoginActivity.EXTRA_USERNAME, username)
+                            }
+                        )
+                        true
+                    }
                 }
                 else -> false
             }
@@ -84,14 +92,10 @@ class CrearTareaActivity : AppCompatActivity() {
     }
 
     private fun configurarSpinnerPiso() {
-        val pisos = mutableListOf("Selecciona piso")
+        val pisos = mutableListOf(TEXTO_PISO_PLACEHOLDER)
 
-        for (piso in 6 downTo 1) {
-            pisos.add(piso.toString())
-        }
-        for (piso in -1 downTo -6) {
-            pisos.add(piso.toString())
-        }
+        for (piso in 6 downTo 1) pisos.add(piso.toString())
+        for (piso in -1 downTo -6) pisos.add(piso.toString())
 
         val adapterPisos = ArrayAdapter(
             this,
@@ -105,7 +109,7 @@ class CrearTareaActivity : AppCompatActivity() {
     }
 
     private fun configurarEventos() {
-        binding.btnImgAgregarFotografias.setOnClickListener {
+        binding.btnAgregarFoto.setOnClickListener {
             seleccionarImagenLauncher.launch("image/*")
         }
 
@@ -113,50 +117,35 @@ class CrearTareaActivity : AppCompatActivity() {
             crearTarea()
         }
     }
+
     private fun crearTarea() {
-        val descripcion = binding.txtDescripcion.text.toString().trim()
-        val ubicacion = binding.autoCompleteUbicacion.text.toString().trim()
+        val descripcion = binding.etDescripcion.text.toString().trim()
+        val ubicacion = binding.actvUbicacion.text.toString().trim()
         val pisoSeleccionado = binding.spPiso.selectedItem?.toString() ?: ""
 
-        // 1. VALIDACIÓN DE DESCRIPCIÓN
         if (descripcion.isEmpty()) {
-            binding.txtDescripcion.error = "Debe ingresar una descripción"
+            binding.etDescripcion.error = "Debe ingresar una descripción"
             return
         }
 
-        // 2. VALIDACIÓN DE UBICACIÓN
         if (ubicacion.isEmpty()) {
-            binding.autoCompleteUbicacion.error = "Debe ingresar una ubicación"
+            binding.actvUbicacion.error = "Debe ingresar una ubicación"
             return
         }
 
-        // 3. VALIDACIÓN DE PISO
-        if (pisoSeleccionado == "Selecciona piso" || pisoSeleccionado.isEmpty()) {
+        if (pisoSeleccionado == TEXTO_PISO_PLACEHOLDER) {
             toast("Debe seleccionar un piso")
             return
         }
 
-        // 4. VALIDACIÓN DE FOTOGRAFÍA (NUEVO REQUERIMIENTO)
         if (imagenUri == null) {
             toast("Debe agregar una fotografía para ingresar la solicitud.")
             return
         }
 
-        // --- Bloque de Autenticación---
-        val usuarioActual = auth.currentUser
-        val creador: String
-
-        if (usuarioActual == null) {
-            val usernameExtra = intent.getStringExtra(LoginActivity.EXTRA_USERNAME)
-            if (usernameExtra.isNullOrEmpty()) {
-                toast("Error: No se pudo obtener el usuario de la sesión.")
-                return
-            }
-            creador = usernameExtra
-        } else {
-            creador = usuarioActual.email ?: usuarioActual.uid
+        val creador = username.ifEmpty {
+            auth.currentUser?.email ?: auth.currentUser?.uid ?: "desconocido"
         }
-        // --- Fin Bloque de Autenticación ---
 
         mostrarCargando(true)
 
@@ -164,51 +153,33 @@ class CrearTareaActivity : AppCompatActivity() {
         val nuevoDoc = coleccion.document()
         val tareaId = nuevoDoc.id
 
-        // Continuamos con el proceso de subida de imagen, ahora 'imagenUri' no es nulo
-        imagenUri?.let { uri ->
-            val referenciaImagen = storage.reference
-                .child("tareas")
-                .child("antes")
-                .child("$tareaId.jpg")
+        val referenciaImagen = storage.reference
+            .child("tareas")
+            .child("antes")
+            .child("$tareaId.jpg")
 
-            referenciaImagen.putFile(uri)
-                .continueWithTask { task ->
-                    if (!task.isSuccessful) {
-                        task.exception?.let { throw it }
-                    }
-                    referenciaImagen.downloadUrl
-                }
-                .addOnSuccessListener { downloadUri ->
-                    val fotoAntesUrl = downloadUri.toString()
-                    guardarTareaEnFirestore(
-                        docRef = nuevoDoc,
-                        tareaId = tareaId,
-                        descripcion = descripcion,
-                        ubicacion = ubicacion,
-                        piso = pisoSeleccionado,
-                        fotoAntesUrl = fotoAntesUrl,
-                        creador = creador
-                    )
-                }
-                .addOnFailureListener { e ->
-                    mostrarCargando(false)
-                    toast("Error al subir la imagen: ${e.message}")
-                }
-        } ?: run {
-            // Este bloque solo se ejecutaría si 'imagenUri' fuera nulo,
-            // pero el código de validación anterior ya lo impide.
-            // Por seguridad, si ocurriera, se usa la versión sin foto.
-            guardarTareaEnFirestore(
-                docRef = nuevoDoc,
-                tareaId = tareaId,
-                descripcion = descripcion,
-                ubicacion = ubicacion,
-                piso = pisoSeleccionado,
-                fotoAntesUrl = "",
-                creador = creador
-            )
-        }
+        referenciaImagen.putFile(imagenUri!!)
+            .continueWithTask { task ->
+                if (!task.isSuccessful) task.exception?.let { throw it }
+                referenciaImagen.downloadUrl
+            }
+            .addOnSuccessListener { downloadUri ->
+                guardarTareaEnFirestore(
+                    docRef = nuevoDoc,
+                    tareaId = tareaId,
+                    descripcion = descripcion,
+                    ubicacion = ubicacion,
+                    piso = pisoSeleccionado,
+                    fotoAntesUrl = downloadUri.toString(),
+                    creador = creador
+                )
+            }
+            .addOnFailureListener { e ->
+                mostrarCargando(false)
+                toast("Error al subir imagen: ${e.message}")
+            }
     }
+
     private fun guardarTareaEnFirestore(
         docRef: DocumentReference,
         tareaId: String,
@@ -218,15 +189,14 @@ class CrearTareaActivity : AppCompatActivity() {
         fotoAntesUrl: String,
         creador: String
     ) {
-
         val tarea = Tarea(
             descripcion = descripcion,
             ubicacion = ubicacion,
             piso = piso,
             fotoAntesUrl = fotoAntesUrl,
             creadaPor = creador
-
         )
+
         docRef.set(tarea)
             .addOnSuccessListener {
                 mostrarCargando(false)
@@ -234,39 +204,35 @@ class CrearTareaActivity : AppCompatActivity() {
             }
             .addOnFailureListener { e ->
                 mostrarCargando(false)
-                toast("Error al guardar la tarea: ${e.message}")
+                toast("Error al guardar tarea: ${e.message}")
             }
     }
 
     private fun mostrarDialogoDespuesDeCrear() {
         AlertDialog.Builder(this)
             .setTitle("Solicitud ingresada")
-            .setMessage("La solicitud se ha ingresado correctamente.\n\n¿Desea ingresar otro requerimiento?")
-            .setPositiveButton("Sí") { _, _ ->
-                limpiarFormulario()
-            }
-            .setNegativeButton("No") { _, _ ->
-                finish()
-            }
+            .setMessage("La solicitud se ha ingresado correctamente.\n\n¿Desea ingresar otra?")
+            .setPositiveButton("Sí") { _, _ -> limpiarFormulario() }
+            .setNegativeButton("No") { _, _ -> finish() }
             .setCancelable(false)
             .show()
     }
 
     private fun limpiarFormulario() {
-        binding.txtDescripcion.setText("")
-        binding.autoCompleteUbicacion.setText("")
+        binding.etDescripcion.setText("")
+        binding.actvUbicacion.setText("")
         binding.spPiso.setSelection(0)
+        binding.btnAgregarFoto.setImageResource(R.drawable.camera_icon)
         imagenUri = null
-        binding.btnImgAgregarFotografias.setImageResource(R.drawable.camera_icon)
     }
 
     private fun mostrarCargando(mostrar: Boolean) {
         binding.progressBarCarga.visibility = if (mostrar) View.VISIBLE else View.GONE
         binding.btnCrearSolicitud.isEnabled = !mostrar
-        binding.btnImgAgregarFotografias.isEnabled = !mostrar
+        binding.btnAgregarFoto.isEnabled = !mostrar
     }
 
-    private fun toast(mensaje: String) {
-        Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
+    private fun toast(msg: String) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
 }
