@@ -115,4 +115,47 @@ class LoginActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
+
+    override fun onStart() {
+        super.onStart()
+
+        val auth = FirebaseAuth.getInstance()
+        val usuarioActual = auth.currentUser ?: return  // Si no hay sesión, se queda en login
+
+        val correo = usuarioActual.email ?: return
+
+        val rol = determinarRolPorCorreo(correo)
+        val esAdmin = (rol == ROL_ADMIN)
+
+        when (rol) {
+            ROL_CREAR -> irACrearTarea(correo, rol, esAdmin)
+            ROL_ADMIN, ROL_REALIZAR -> irAMuroTareas(correo, rol, esAdmin)
+        }
+    }
+    private fun determinarRolPorCorreo(correo: String): String {
+        val correoLower = correo.lowercase()
+
+        return when (correoLower) {
+            "crear_tarea@miapp.com" -> ROL_CREAR
+            "administrador@miapp.com" -> ROL_ADMIN
+            "realizar_tarea@miapp.com" -> ROL_REALIZAR
+
+            // supervisores → realizan tareas
+            "delfina.cabello@miapp.com",
+            "rodrigo.reyes@miapp.com",
+            "maria.caruajulca@miapp.com",
+            "john.vilchez@miapp.com",
+            "cristian.vergara@miapp.com",
+            "enrique.mendez@miapp.com",
+            "norma.marican@miapp.com",
+            "libia.florez@miapp.com",
+            "jorge.geisbuhler@miapp.com" -> ROL_REALIZAR
+
+            else -> ROL_REALIZAR
+        }
+    }
+
+
+
+
 }

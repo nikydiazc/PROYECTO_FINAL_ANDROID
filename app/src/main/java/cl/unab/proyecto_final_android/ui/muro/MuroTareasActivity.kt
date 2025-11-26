@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
 import cl.unab.proyecto_final_android.Tarea
 import cl.unab.proyecto_final_android.data.ModoMuro
 import cl.unab.proyecto_final_android.data.TareaRepository
@@ -47,6 +48,10 @@ class MuroTareasActivity : AppCompatActivity() {
     private val esAdmin: Boolean
         get() = usernameActual.equals("administrador", ignoreCase = true) ||
                 usernameActual.equals("administrador@miapp.com", ignoreCase = true)
+
+    companion object {
+        private const val STATE_SCROLL_POSITION = "state_scroll_position"
+    }
 
     // ---------------------------
     // Variables de Foto
@@ -155,6 +160,13 @@ class MuroTareasActivity : AppCompatActivity() {
         viewModel.cargarTareas()
         MuroConfigurator.marcarBotonActivo(binding.btnTareasPendientes, binding)
         MuroConfigurator.actualizarVisibilidadFiltros(binding, esAdmin, ModoMuro.PENDIENTES)
+
+
+        val scrollPos = savedInstanceState?.getInt(STATE_SCROLL_POSITION, 0) ?: 0
+        binding.rvTareas.post {
+            (binding.rvTareas.layoutManager as? LinearLayoutManager)
+                ?.scrollToPositionWithOffset(scrollPos, 0)
+        }
     }
 
     override fun onResume() {
@@ -258,6 +270,13 @@ class MuroTareasActivity : AppCompatActivity() {
             adapter.actualizarTareas(state.tareas)
             state.error?.let { Toast.makeText(this, it, Toast.LENGTH_SHORT).show() }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        val layoutManager = binding.rvTareas.layoutManager as? LinearLayoutManager
+        val pos = layoutManager?.findFirstVisibleItemPosition() ?: 0
+        outState.putInt(STATE_SCROLL_POSITION, pos)
     }
 }
 

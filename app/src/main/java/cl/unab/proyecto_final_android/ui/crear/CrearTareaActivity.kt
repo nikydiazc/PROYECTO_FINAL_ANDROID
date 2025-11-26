@@ -39,6 +39,13 @@ class CrearTareaActivity : AppCompatActivity() {
     private var rolUsuario: String = LoginActivity.ROL_CREAR
     private var usernameActual: String = ""
 
+    companion object {
+        private const val STATE_DESCRIPCION = "state_descripcion"
+        private const val STATE_UBICACION = "state_ubicacion"
+        private const val STATE_PISO_INDEX = "state_piso_index"
+        private const val STATE_IMAGEN_URI = "state_imagen_uri"
+    }
+
     // --------- LAUNCHERS ---------
 
     // Galería
@@ -100,6 +107,8 @@ class CrearTareaActivity : AppCompatActivity() {
         configurarBottomNav()
         configurarSpinnerPiso()
         configurarEventos()
+
+        restaurarEstadoFormulario(savedInstanceState)
     }
 
     // --------- UI / NAV ---------
@@ -348,5 +357,40 @@ class CrearTareaActivity : AppCompatActivity() {
 
     private fun toast(msg: String) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+
+        outState.putString(STATE_DESCRIPCION, binding.etDescripcion.text.toString())
+        outState.putString(STATE_UBICACION, binding.actvUbicacion.text.toString())
+        outState.putInt(STATE_PISO_INDEX, binding.spPiso.selectedItemPosition)
+        outState.putString(STATE_IMAGEN_URI, imagenUri?.toString())
+    }
+
+    private fun restaurarEstadoFormulario(savedInstanceState: Bundle?) {
+        savedInstanceState ?: return
+
+        // descripción
+        val desc = savedInstanceState.getString(STATE_DESCRIPCION, "")
+        binding.etDescripcion.setText(desc)
+
+        // ubicación
+        val ubi = savedInstanceState.getString(STATE_UBICACION, "")
+        binding.actvUbicacion.setText(ubi)
+
+        // piso
+        val idxPiso = savedInstanceState.getInt(STATE_PISO_INDEX, 0)
+        if (idxPiso in 0 until binding.spPiso.count) {
+            binding.spPiso.setSelection(idxPiso)
+        }
+
+        // imagen
+        val uriString = savedInstanceState.getString(STATE_IMAGEN_URI, null)
+        if (!uriString.isNullOrEmpty()) {
+            imagenUri = Uri.parse(uriString)
+            binding.btnAgregarFoto.setImageURI(imagenUri)
+        }
+
     }
 }

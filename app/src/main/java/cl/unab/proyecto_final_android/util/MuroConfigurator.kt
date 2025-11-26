@@ -24,10 +24,12 @@ import cl.unab.proyecto_final_android.ui.muro.TareaAdapter
 import cl.unab.proyecto_final_android.ui.muro.TareasViewModel
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.widget.AppCompatEditText
+import com.google.firebase.auth.FirebaseAuth
+
 
 object MuroConfigurator {
 
-    // ---------- MODELO PARA SUPERVISORES ----------
+    // --------- MODELO PARA SUPERVISORES --------
 
     data class SupervisorUsuario(val nombreVisible: String, val username: String)
 
@@ -225,14 +227,23 @@ object MuroConfigurator {
         rolUsuario: String,
         usernameActual: String
     ) {
-        // Dejar marcado este ítem porque estamos en el muro
+        // Para que los íconos mantengan sus colores originales
+        bottomNav.itemIconTintList = null
+
+        // Marcar el muro como seleccionado cuando estés en esta activity
         bottomNav.selectedItemId = R.id.nav_muro_tareas
 
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
+
+                R.id.nav_muro_tareas -> {
+                    true
+                }
+
                 R.id.nav_crear_tarea -> {
-                    val puedeCrear =
-                        rolUsuario == LoginActivity.ROL_ADMIN || rolUsuario == LoginActivity.ROL_CREAR
+                    // Solo ciertos roles pueden crear
+                    val puedeCrear = rolUsuario == LoginActivity.ROL_ADMIN ||
+                            rolUsuario == LoginActivity.ROL_CREAR
 
                     if (puedeCrear) {
                         activity.startActivity(
@@ -251,11 +262,6 @@ object MuroConfigurator {
                     true
                 }
 
-                R.id.nav_muro_tareas -> {
-                    // Ya estamos aquí
-                    true
-                }
-
                 R.id.nav_usuario -> {
                     mostrarDialogoCerrarSesion(activity)
                     true
@@ -271,6 +277,10 @@ object MuroConfigurator {
             .setTitle("Cerrar sesión")
             .setMessage("¿Estás seguro que deseas cerrar tu sesión actual?")
             .setPositiveButton("Cerrar sesión") { _, _ ->
+                // 1) cerrar sesión en Firebase
+                FirebaseAuth.getInstance().signOut()
+
+                // 2) ir al Login limpiando el backstack
                 val intent = Intent(activity, LoginActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 }
