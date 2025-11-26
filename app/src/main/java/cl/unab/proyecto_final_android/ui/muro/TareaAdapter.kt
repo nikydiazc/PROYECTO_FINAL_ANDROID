@@ -54,7 +54,7 @@ class TareaAdapter(
         // 1. Datos básicos
         binding.tvDescripcionTarea.text = tarea.descripcion
         binding.tvUbicacionTarea.text = "Ubicación: ${tarea.ubicacion}"
-        binding.tvPisoValor.text = "Piso: ${tarea.piso}"
+        binding.tvPisoValor.text = tarea.piso
         binding.tvAsignadaA.text =
             "Asignada a: ${if (tarea.asignadaA.isNullOrEmpty()) "—" else tarea.asignadaA}"
         binding.tvFechaCreacion.text = "Creada: ${formatearTimestamp(tarea.fechaCreacion)}"
