@@ -12,7 +12,6 @@ import com.google.firebase.auth.FirebaseAuth
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
-    private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
 
     companion object {
         const val EXTRA_ROL_USUARIO = "rolUsuario"
@@ -31,8 +30,11 @@ class LoginActivity : AppCompatActivity() {
 
         configurarEventos()
     }
+
     private fun configurarEventos() {
-        binding.btnIngresar.setOnClickListener { validarCampos() }
+        binding.btnIngresar.setOnClickListener {
+            validarCampos()
+        }
     }
 
     private fun validarCampos() {
@@ -48,17 +50,24 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun hacerLogin(correo: String, contrasena: String) {
+        val auth = FirebaseAuth.getInstance()
 
         auth.signInWithEmailAndPassword(correo, contrasena)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
 
-                    val rol = determinarRolDesdeCorreo(correo)
+                    val correoLower = correo.trim().lowercase()
+
+                    // Determinar rol según el correo
+                    val rol = getRolFromCorreo(correoLower)
+
+                    val usernameCorto = extraerUsernameDesdeCorreo(correoLower)
                     val esAdmin = (rol == ROL_ADMIN)
 
                     when (rol) {
-                        ROL_CREAR -> irACrearTarea(correo, rol, esAdmin)
-                        ROL_ADMIN, ROL_REALIZAR -> irAMuroTareas(correo, rol, esAdmin)
+                        ROL_CREAR -> irACrearTarea(usernameCorto, rol, esAdmin)
+                        ROL_ADMIN,
+                        ROL_REALIZAR -> irAMuroTareas(usernameCorto, rol, esAdmin)
                     }
 
                 } else {
@@ -71,18 +80,14 @@ class LoginActivity : AppCompatActivity() {
             }
     }
 
-    /**
-     * Determina el rol según el correo exacto del usuario.
-     * Los correos deben coincidir con Firebase Authentication.
-     */
-    private fun obtenerRolUsuario(correo: String): String {
-        val correoLower = correo.lowercase()
-
+    // Mapea correos a roles
+    private fun getRolFromCorreo(correoLower: String): String {
         return when (correoLower) {
             "crear_tarea@miapp.com" -> ROL_CREAR
             "administrador@miapp.com" -> ROL_ADMIN
             "realizar_tarea@miapp.com" -> ROL_REALIZAR
-            // supervisores son equivalentes a realizar tarea
+
+            // supervisores: mismos permisos que REALIZAR
             "delfina.cabello@miapp.com",
             "rodrigo.reyes@miapp.com",
             "maria.caruajulca@miapp.com",
@@ -92,8 +97,14 @@ class LoginActivity : AppCompatActivity() {
             "norma.marican@miapp.com",
             "libia.florez@miapp.com",
             "jorge.geisbuhler@miapp.com" -> ROL_REALIZAR
+
             else -> ROL_REALIZAR
         }
+    }
+
+    // "delfina.cabello@miapp.com" -> "delfina.cabello"
+    private fun extraerUsernameDesdeCorreo(correoLower: String): String {
+        return correoLower.substringBefore("@")
     }
 
     private fun irACrearTarea(username: String, rol: String, esAdmin: Boolean) {
@@ -115,47 +126,4 @@ class LoginActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
-
-    override fun onStart() {
-        super.onStart()
-        val user = auth.currentUser
-        if (user != null) {
-            val correo = user.email ?: ""
-            val rol = determinarRolDesdeCorreo(correo)
-            val username = correo
-
-            val esAdmin = (rol == ROL_ADMIN)
-
-            when (rol) {
-                ROL_CREAR -> irACrearTarea(username, rol, esAdmin)
-                ROL_ADMIN, ROL_REALIZAR -> irAMuroTareas(username, rol, esAdmin)
-            }
-        }
-    }
-
-    private fun determinarRolDesdeCorreo(correo: String?): String {
-        val correoLower = correo?.lowercase().orEmpty()
-        return when (correoLower) {
-            "crear_tarea@miapp.com" -> ROL_CREAR
-            "administrador@miapp.com" -> ROL_ADMIN
-            "realizar_tarea@miapp.com" -> ROL_REALIZAR
-
-            // supervisores -> ROL_REALIZAR
-            "delfina.cabello@miapp.com",
-            "rodrigo.reyes@miapp.com",
-            "maria.caruajulca@miapp.com",
-            "john.vilchez@miapp.com",
-            "cristian.vergara@miapp.com",
-            "enrique.mendez@miapp.com",
-            "norma.marican@miapp.com",
-            "libia.florez@miapp.com",
-            "jorge.geisbuhler@miapp.com" -> ROL_REALIZAR
-
-            else -> ROL_REALIZAR
-        }
-    }
-
-
-
-
 }

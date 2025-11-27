@@ -62,18 +62,16 @@ class TareasViewModel(
         // Filtro por asignado según rol y modo
         val filtroAsignado: String? = when {
             esAdmin -> {
-                // Admin filtra por supervisor seleccionado en spinner
+                // Admin ve lo que elija en el spinner
                 estadoActual.filtroSupervisor
             }
             modoMuro == ModoMuro.ASIGNADAS && esSupervisor -> {
-                // Supervisor en modo asignadas: solo ve las suyas
+                // Supervisor en pestaña ASIGNADAS: solo las suyas
                 usernameActual
             }
-            else -> {
-                // Otros roles: sin filtro asignadoA específico
-                null
-            }
+            else -> null
         }
+
 
         tareaRepository.obtenerTareasFiltradas(
             modoMuro = modoMuro,
@@ -220,7 +218,7 @@ class TareasViewModel(
         }
     }
 
-    // 👉 NUEVO: actualizar tarea (editar descripción, ubicación y piso)
+    // actualizar tarea (editar descripción, ubicación y piso)
     fun actualizarTarea(
         tarea: Tarea,
         nuevaDescripcion: String,

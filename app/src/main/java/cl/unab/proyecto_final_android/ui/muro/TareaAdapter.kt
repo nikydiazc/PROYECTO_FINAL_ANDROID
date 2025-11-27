@@ -51,7 +51,7 @@ class TareaAdapter(
         val binding = holder.binding
         val context = holder.itemView.context
 
-        // 1. Datos básicos
+        // 1) Datos básicos
         binding.tvDescripcionTarea.text = tarea.descripcion
         binding.tvUbicacionTarea.text = "Ubicación: ${tarea.ubicacion}"
         binding.tvPisoValor.text = "Piso: ${tarea.piso}"
@@ -59,39 +59,44 @@ class TareaAdapter(
             "Asignada a: ${if (tarea.asignadaA.isNullOrEmpty()) "—" else tarea.asignadaA}"
         binding.tvFechaCreacion.text = "Creada: ${formatearTimestamp(tarea.fechaCreacion)}"
 
-        // Estado + color de fondo
+        // Estado + fondo con ColorStatus
         binding.tvEstadoTarea.text = "Estado: ${tarea.estado}"
         binding.tvEstadoTarea.setBackgroundResource(
-            ColorStatus.getColorResource(tarea.estado)
+            ColorStatus.getColorResource(tarea.estado ?: "")
         )
 
-        // 2. Visibilidad de botones según rol
+        // 2) Visibilidad de botones según rol
 
-        // Solo admin puede editar/eliminar
+        // Admin puede editar/eliminar
         val puedeAdministrar = esAdmin
         binding.btnEditarTarea.visibility = if (puedeAdministrar) View.VISIBLE else View.GONE
         binding.btnEliminarTarea.visibility = if (puedeAdministrar) View.VISIBLE else View.GONE
 
-        // Permisos para responder:
+        // ¿Puede responder?
+        // - No responde quien crea (ROL_CREAR)
+        // - No se responde si está Realizada o Rechazada
         val puedeResponder = rolUsuario != LoginActivity.ROL_CREAR &&
                 !tarea.estado.equals("Realizada", ignoreCase = true) &&
                 !tarea.estado.equals("Rechazada", ignoreCase = true)
 
-        val asignadaAOtroSupervisor =
+        // Si la tarea está asignada a alguien:
+        // - Si es ADMIN => siempre puede responder
+        // - Si es REALIZAR => solo puede si asignadaA == usernameActual
+        val asignadaAOtroCuandoSoyRealizar =
             !tarea.asignadaA.isNullOrEmpty() &&
                     tarea.asignadaA != usernameActual &&
                     rolUsuario == LoginActivity.ROL_REALIZAR
 
         binding.btnResponderFoto.visibility =
-            if (puedeResponder && !asignadaAOtroSupervisor) View.VISIBLE else View.GONE
+            if (puedeResponder && !asignadaAOtroCuandoSoyRealizar) View.VISIBLE else View.GONE
 
-        // 3. Vistas condicionales según estado
+        // 3) Vistas condicionales según estado
         when (tarea.estado) {
             "Pendiente", "Asignada" -> {
                 binding.imgRespuesta.visibility = View.GONE
                 binding.tvFechaRespuesta.visibility = View.GONE
 
-                // Foto ANTES en la imagen superior
+                // En pendientes/asignadas, mostramos solo la foto "antes"
                 cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
             }
 
@@ -102,10 +107,8 @@ class TareaAdapter(
                 val fechaFormateada = formatearTimestamp(tarea.fechaRespuesta)
                 binding.tvFechaRespuesta.text = "Realizada: $fechaFormateada"
 
-                // 🔁 AQUÍ INVERTIMOS EL ORDEN:
-                // Imagen superior = DESPUÉS
-                // Imagen inferior = ANTES
-                cargarFoto(context, binding.imgTarea, tarea.fotoDespuesUrl)
+                // Aquí mostramos PRIMERO el DESPUÉS (arriba) y luego el ANTES (abajo)
+                cargarFoto(context, binding.imgTarea, tarea.fotoDespuesUrl ?: tarea.fotoAntesUrl)
                 cargarFoto(context, binding.imgRespuesta, tarea.fotoAntesUrl)
             }
 
@@ -116,9 +119,8 @@ class TareaAdapter(
                 val fechaFormateada = formatearTimestamp(tarea.fechaRespuesta)
                 binding.tvFechaRespuesta.text = "Rechazada: $fechaFormateada"
 
-                // También invertimos: primero DESPUÉS si existe (evidencia),
-                // segundo ANTES
-                cargarFoto(context, binding.imgTarea, tarea.fotoDespuesUrl)
+                // Mismo criterio: primero evidencia final, luego la original
+                cargarFoto(context, binding.imgTarea, tarea.fotoDespuesUrl ?: tarea.fotoAntesUrl)
                 cargarFoto(context, binding.imgRespuesta, tarea.fotoAntesUrl)
             }
 
@@ -129,53 +131,24 @@ class TareaAdapter(
             }
         }
 
-        // 4. Clicks en imágenes
+        // 4) Clicks en imágenes
 
-        // Imagen de arriba (imgTarea)
+        // Foto principal (arriba)
         binding.imgTarea.setOnClickListener {
-            when (tarea.estado) {
-                "Realizada", "Rechazada" -> {
-                    // En realizadas/rechazadas la de arriba es DESPUÉS
-                    abrirVisualizador(context, tarea.fotoDespuesUrl)
-                }
-                else -> {
-                    // En pendientes/asignadas la de arriba es ANTES
-                    abrirVisualizador(context, tarea.fotoAntesUrl)
-                }
-            }
+            abrirVisualizador(context, tarea.fotoDespuesUrl ?: tarea.fotoAntesUrl)
         }
 
-        // Imagen de abajo (imgRespuesta)
+        // Foto secundaria (abajo)
         binding.imgRespuesta.setOnClickListener {
-            when (tarea.estado) {
-                "Realizada", "Rechazada" -> {
-                    // Abajo = ANTES
-                    if (!tarea.fotoAntesUrl.isNullOrEmpty()) {
-                        abrirVisualizador(context, tarea.fotoAntesUrl)
-                    } else {
-                        Toast.makeText(
-                            context,
-                            "No hay foto de antes disponible",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-                else -> {
-                    // Por seguridad: si en algún momento usas la segunda imagen para otra cosa
-                    if (!tarea.fotoDespuesUrl.isNullOrEmpty()) {
-                        abrirVisualizador(context, tarea.fotoDespuesUrl)
-                    } else {
-                        Toast.makeText(
-                            context,
-                            "Aún no hay foto de respuesta disponible",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
+            if (!tarea.fotoAntesUrl.isNullOrEmpty()) {
+                abrirVisualizador(context, tarea.fotoAntesUrl)
+            } else {
+                Toast.makeText(context, "No hay foto disponible para mostrar", Toast.LENGTH_SHORT)
+                    .show()
             }
         }
 
-        // 5. Botones de acción
+        // 5) Botones de acción
         binding.btnResponderFoto.setOnClickListener { onResponderClick(tarea) }
         binding.btnEditarTarea.setOnClickListener { onEditarClick(tarea) }
         binding.btnEliminarTarea.setOnClickListener { onEliminarClick(tarea) }
@@ -221,6 +194,8 @@ class TareaAdapter(
             "—"
         }
     }
+
+    // ---------------------- PÚBLICOS ----------------------
 
     fun actualizarTareas(nuevasTareas: List<Tarea>) {
         tareas = nuevasTareas

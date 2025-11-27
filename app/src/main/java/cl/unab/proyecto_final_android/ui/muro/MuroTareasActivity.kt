@@ -182,23 +182,24 @@ class MuroTareasActivity : AppCompatActivity() {
         fotoAntesUri = null
     }
 
-    // ---------------------------
     // Responder Tarea (Foto Después)
-    // ---------------------------
     fun intentarTomarFoto(tarea: Tarea) {
-        if (tarea.estado == "Realizada" || tarea.estado == "Rechazada") {
-            Toast.makeText(this, "Solo se pueden responder tareas Pendientes o Asignadas.", Toast.LENGTH_SHORT).show()
+        if (!puedeResponderTarea(tarea)) {
+            Toast.makeText(this, "No tienes permisos para responder esta tarea.", Toast.LENGTH_SHORT).show()
             return
         }
 
         tareaEnRespuesta = tarea
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
             lanzarCamaraDespuesDePermiso(tarea)
         } else {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
+
 
     internal fun lanzarCamaraDespuesDePermiso(tarea: Tarea) {
         fotoRespuestaUri = crearUriDeArchivoTemporal("RESPUESTA")
@@ -213,9 +214,7 @@ class MuroTareasActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------------------
     // Crear Tarea (Foto Antes)
-    // ---------------------------
     fun intentarTomarFotoParaCreacion() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             lanzarCamaraParaCreacion()
@@ -244,9 +243,7 @@ class MuroTareasActivity : AppCompatActivity() {
         )
     }
 
-    // ---------------------------
     // Utilidades
-    // ---------------------------
     private fun crearUriDeArchivoTemporal(prefijo: String): Uri? {
         return try {
             val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: return null
@@ -278,5 +275,30 @@ class MuroTareasActivity : AppCompatActivity() {
         val pos = layoutManager?.findFirstVisibleItemPosition() ?: 0
         outState.putInt(STATE_SCROLL_POSITION, pos)
     }
+
+    private fun puedeResponderTarea(tarea: Tarea): Boolean {
+        // No responder tareas cerradas
+        if (tarea.estado.equals("Realizada", true) || tarea.estado.equals("Rechazada", true)) {
+            return false
+        }
+
+        // El rol CREAR nunca responde
+        if (rolUsuario == LoginActivity.ROL_CREAR) return false
+
+        // Admin siempre puede
+        if (esAdmin) return true
+
+        // Para supervisores y realizar_tarea, usamos username corto
+        val usernameCorto = usernameActual.substringBefore("@").lowercase()
+
+        // Si no hay asignado, puede responder
+        if (tarea.asignadaA.isNullOrEmpty()) return true
+
+        // Si hay asignado, solo si coincide con su username
+        return tarea.asignadaA.equals(usernameCorto, ignoreCase = true)
+    }
+
+
+
 }
 
