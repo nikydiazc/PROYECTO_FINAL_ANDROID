@@ -221,27 +221,24 @@ object MuroConfigurator {
 
     // ---------- BOTTOM NAV ----------
 
+// MuroConfigurator.kt
+
     fun configurarBottomNav(
         activity: MuroTareasActivity,
         bottomNav: BottomNavigationView,
         rolUsuario: String,
         usernameActual: String
     ) {
-        // Para que los íconos mantengan sus colores originales
-        bottomNav.itemIconTintList = null
-
-        // Marcar el muro como seleccionado cuando estés en esta activity
+        // Deja seleccionado el ítem correcto según la pantalla actual si quieres
         bottomNav.selectedItemId = R.id.nav_muro_tareas
+
+        // Evitar tint sólido
+        bottomNav.itemIconTintList = null
 
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
 
-                R.id.nav_muro_tareas -> {
-                    true
-                }
-
                 R.id.nav_crear_tarea -> {
-                    // Solo ciertos roles pueden crear
                     val puedeCrear = rolUsuario == LoginActivity.ROL_ADMIN ||
                             rolUsuario == LoginActivity.ROL_CREAR
 
@@ -253,12 +250,13 @@ object MuroConfigurator {
                             }
                         )
                     } else {
-                        Toast.makeText(
-                            activity,
-                            "No tienes permisos para crear tareas",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Toast.makeText(activity, "No tienes permisos para crear tareas", Toast.LENGTH_SHORT).show()
                     }
+                    true
+                }
+
+                R.id.nav_muro_tareas -> {
+                    // Ya estás en el muro, no hace falta hacer nada
                     true
                 }
 
@@ -272,15 +270,14 @@ object MuroConfigurator {
         }
     }
 
+
     private fun mostrarDialogoCerrarSesion(activity: MuroTareasActivity) {
         AlertDialog.Builder(activity)
-            .setTitle("Cerrar sesión")
+            .setTitle("Cerrar Sesión")
             .setMessage("¿Estás seguro que deseas cerrar tu sesión actual?")
-            .setPositiveButton("Cerrar sesión") { _, _ ->
-                // 1) cerrar sesión en Firebase
+            .setPositiveButton("Cerrar Sesión") { _, _ ->
                 FirebaseAuth.getInstance().signOut()
 
-                // 2) ir al Login limpiando el backstack
                 val intent = Intent(activity, LoginActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 }
@@ -290,6 +287,7 @@ object MuroConfigurator {
             .setNegativeButton("Cancelar", null)
             .show()
     }
+
 
     // ---------- EDICIÓN / ELIMINACIÓN ----------
 

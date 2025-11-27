@@ -45,13 +45,18 @@ class FiltroFechaManager(
 
                 if (esFechaDesde) {
                     fechaSeleccionadaDesde = nuevaFecha
-                    binding.tvFechaDesde.text =
-                        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(nuevaFecha.time)
+                    val formateada = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        .format(nuevaFecha.time)
+
+                    binding.tvFechaDesde.text = "Desde:\n$formateada"
                 } else {
                     fechaSeleccionadaHasta = nuevaFecha
-                    binding.tvFechaHasta.text =
-                        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(nuevaFecha.time)
+                    val formateada = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        .format(nuevaFecha.time)
+
+                    binding.tvFechaHasta.text = "Hasta:\n$formateada"
                 }
+
             },
             calendario.get(Calendar.YEAR),
             calendario.get(Calendar.MONTH),
@@ -79,27 +84,30 @@ class FiltroFechaManager(
             return
         }
 
+        // Ahora usa el método nuevo
         viewModel.aplicarFiltroFechas(desde, hasta)
     }
 
     private fun limpiarTodosLosFiltrosUI() {
-        // 1. Limpiar variables internas
+        // 1. Limpiar Variables de Fecha
         fechaSeleccionadaDesde = null
         fechaSeleccionadaHasta = null
 
-        // 2. Limpiar UI
+        // 2. Limpiar UI (usamos siempre el mismo formato)
         binding.tvFechaDesde.text = ""
         binding.tvFechaDesde.hint = "Desde: DD/MM/AAAA"
+
         binding.tvFechaHasta.text = ""
         binding.tvFechaHasta.hint = "Hasta: DD/MM/AAAA"
+
         binding.etBuscarDescripcionOUbicacion.setText("")
 
+        // Volver spinners a "Todos"
         binding.spFiltroPiso.setSelection(0)
         binding.spFiltroSupervisor.setSelection(0)
 
-        // 3. Avisar al ViewModel que resetee LÓGICA de filtros
+        // 3. Llamar al ViewModel para resetear lógica
         viewModel.limpiarTodosLosFiltros()
-
         Toast.makeText(context, "Todos los filtros restablecidos", Toast.LENGTH_SHORT).show()
     }
 

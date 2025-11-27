@@ -31,7 +31,6 @@ class LoginActivity : AppCompatActivity() {
 
         configurarEventos()
     }
-
     private fun configurarEventos() {
         binding.btnIngresar.setOnClickListener { validarCampos() }
     }
@@ -49,22 +48,23 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun hacerLogin(correo: String, contrasena: String) {
-        auth.signInWithEmailAndPassword(correo, contrasena)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val rol = obtenerRolUsuario(correo)
-                    val esAdmin = rol == ROL_ADMIN
 
-                    if (rol == ROL_CREAR) {
-                        irACrearTarea(correo, rol, esAdmin)
-                    } else {
-                        irAMuroTareas(correo, rol, esAdmin)
+        auth.signInWithEmailAndPassword(correo, contrasena)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+
+                    val rol = determinarRolDesdeCorreo(correo)
+                    val esAdmin = (rol == ROL_ADMIN)
+
+                    when (rol) {
+                        ROL_CREAR -> irACrearTarea(correo, rol, esAdmin)
+                        ROL_ADMIN, ROL_REALIZAR -> irAMuroTareas(correo, rol, esAdmin)
                     }
 
                 } else {
                     Toast.makeText(
                         this,
-                        "Error de credenciales. Verifica tu correo y contraseña.",
+                        "Error de credenciales o de red. Intenta de nuevo.",
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -118,29 +118,29 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        val user = auth.currentUser
+        if (user != null) {
+            val correo = user.email ?: ""
+            val rol = determinarRolDesdeCorreo(correo)
+            val username = correo
 
-        val auth = FirebaseAuth.getInstance()
-        val usuarioActual = auth.currentUser ?: return  // Si no hay sesión, se queda en login
+            val esAdmin = (rol == ROL_ADMIN)
 
-        val correo = usuarioActual.email ?: return
-
-        val rol = determinarRolPorCorreo(correo)
-        val esAdmin = (rol == ROL_ADMIN)
-
-        when (rol) {
-            ROL_CREAR -> irACrearTarea(correo, rol, esAdmin)
-            ROL_ADMIN, ROL_REALIZAR -> irAMuroTareas(correo, rol, esAdmin)
+            when (rol) {
+                ROL_CREAR -> irACrearTarea(username, rol, esAdmin)
+                ROL_ADMIN, ROL_REALIZAR -> irAMuroTareas(username, rol, esAdmin)
+            }
         }
     }
-    private fun determinarRolPorCorreo(correo: String): String {
-        val correoLower = correo.lowercase()
 
+    private fun determinarRolDesdeCorreo(correo: String?): String {
+        val correoLower = correo?.lowercase().orEmpty()
         return when (correoLower) {
             "crear_tarea@miapp.com" -> ROL_CREAR
             "administrador@miapp.com" -> ROL_ADMIN
             "realizar_tarea@miapp.com" -> ROL_REALIZAR
 
-            // supervisores → realizan tareas
+            // supervisores -> ROL_REALIZAR
             "delfina.cabello@miapp.com",
             "rodrigo.reyes@miapp.com",
             "maria.caruajulca@miapp.com",

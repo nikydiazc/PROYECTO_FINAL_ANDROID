@@ -133,44 +133,29 @@ class TareasViewModel(
     }
 
     fun actualizarRangoFechas(desde: Timestamp?, hasta: Timestamp?) {
-        val estado = _uiState.value ?: return
-        _uiState.value = estado.copy(
-            filtroFechaDesde = desde,
-            filtroFechaHasta = hasta
-        )
-        cargarTareas()
+        aplicarFiltroFechas(desde, hasta)
     }
-
-// En TareasViewModel.kt
 
     fun aplicarFiltroFechas(desde: Timestamp?, hasta: Timestamp?) {
         val estado = _uiState.value ?: return
-
         _uiState.value = estado.copy(
             filtroFechaDesde = desde,
             filtroFechaHasta = hasta
         )
-
-        // Vuelve a cargar las tareas con el nuevo rango
         cargarTareas()
     }
 
-    fun limpiarTodosLosFiltros() {
-        val estado = _uiState.value ?: return
 
-        // Reseteamos TODOS los filtros a su estado "por defecto"
+    fun limpiarTodosLosFiltros() {
+        // Dejamos el modo de muro como está, solo limpiamos filtros
+        val estado = _uiState.value ?: MuroUiState()
         _uiState.value = estado.copy(
-            modoMuro = ModoMuro.PENDIENTES,   // vuelve a Pendientes
             filtroPiso = "Todos",
             filtroSupervisor = null,
             filtroBusqueda = "",
             filtroFechaDesde = null,
-            filtroFechaHasta = null,
-            error = null
-            // OJO: NO tocamos la lista de tareas aquí.
+            filtroFechaHasta = null
         )
-
-        // Volvemos a pedir las tareas sin filtros
         cargarTareas()
     }
 

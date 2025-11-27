@@ -80,6 +80,7 @@
             android:paddingHorizontal="12dp"
             android:textColor="@color/gris"
             android:textSize="14sp"
+            android:gravity="center"
             app:layout_constraintTop_toBottomOf="@+id/layoutFiltrosEstado"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
@@ -157,33 +158,30 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="4dp"
-                        android:minHeight="40dp"
                         android:background="@drawable/cornertxtview"
-                        android:hint="Desde:"
                         android:paddingStart="10dp"
-                        android:drawablePadding="6dp"
                         android:gravity="center_vertical"
+                        android:text="Desde:\nDD/MM/AAAA"
                         android:textColor="@color/gris"
-                        android:textSize="12sp"
+                        android:textSize="10sp"
                         android:clickable="true"
-                        android:focusable="false"/>
+                        android:focusable="false" />
 
                     <TextView
                         android:id="@+id/tvFechaHasta"
                         android:layout_width="0dp"
                         android:layout_height="40dp"
                         android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        android:minHeight="40dp"
+                        android:layout_marginEnd="4dp"
                         android:background="@drawable/cornertxtview"
-                        android:hint="Hasta:"
                         android:paddingStart="10dp"
-                        android:drawablePadding="6dp"
                         android:gravity="center_vertical"
+                        android:text="Hasta:\nDD/MM/AAAA"
                         android:textColor="@color/gris"
-                        android:textSize="12sp"
+                        android:textSize="10sp"
                         android:clickable="true"
-                        android:focusable="false"/>
+                        android:focusable="false" />
+
 
                     <ImageButton
                         android:id="@+id/btnAplicarFiltroFecha"

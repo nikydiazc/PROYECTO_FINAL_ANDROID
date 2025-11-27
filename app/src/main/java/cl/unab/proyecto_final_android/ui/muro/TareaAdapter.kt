@@ -54,7 +54,7 @@ class TareaAdapter(
         // 1. Datos básicos
         binding.tvDescripcionTarea.text = tarea.descripcion
         binding.tvUbicacionTarea.text = "Ubicación: ${tarea.ubicacion}"
-        binding.tvPisoValor.text = tarea.piso
+        binding.tvPisoValor.text = "Piso: ${tarea.piso}"
         binding.tvAsignadaA.text =
             "Asignada a: ${if (tarea.asignadaA.isNullOrEmpty()) "—" else tarea.asignadaA}"
         binding.tvFechaCreacion.text = "Creada: ${formatearTimestamp(tarea.fechaCreacion)}"
@@ -62,7 +62,7 @@ class TareaAdapter(
         // Estado + color de fondo
         binding.tvEstadoTarea.text = "Estado: ${tarea.estado}"
         binding.tvEstadoTarea.setBackgroundResource(
-            ColorStatus.getColorResource(tarea.estado ?: "")
+            ColorStatus.getColorResource(tarea.estado)
         )
 
         // 2. Visibilidad de botones según rol
@@ -77,7 +77,6 @@ class TareaAdapter(
                 !tarea.estado.equals("Realizada", ignoreCase = true) &&
                 !tarea.estado.equals("Rechazada", ignoreCase = true)
 
-        // Si la tarea está asignada a alguien específico:
         val asignadaAOtroSupervisor =
             !tarea.asignadaA.isNullOrEmpty() &&
                     tarea.asignadaA != usernameActual &&
@@ -87,42 +86,93 @@ class TareaAdapter(
             if (puedeResponder && !asignadaAOtroSupervisor) View.VISIBLE else View.GONE
 
         // 3. Vistas condicionales según estado
-        // 👉 Siempre mostramos SOLO la imagen "principal" en el card (imgTarea).
-        //    La segunda imagen se verá solo en pantalla completa, deslizándola.
-        binding.imgRespuesta.visibility = View.GONE
-
         when (tarea.estado) {
             "Pendiente", "Asignada" -> {
+                binding.imgRespuesta.visibility = View.GONE
                 binding.tvFechaRespuesta.visibility = View.GONE
+
+                // Foto ANTES en la imagen superior
                 cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
             }
 
             "Realizada" -> {
+                binding.imgRespuesta.visibility = View.VISIBLE
                 binding.tvFechaRespuesta.visibility = View.VISIBLE
+
                 val fechaFormateada = formatearTimestamp(tarea.fechaRespuesta)
                 binding.tvFechaRespuesta.text = "Realizada: $fechaFormateada"
 
-                // En el card mostramos solo la foto ANTES (o podrías cambiar a fotoDespues si prefieres)
-                cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
+                // 🔁 AQUÍ INVERTIMOS EL ORDEN:
+                // Imagen superior = DESPUÉS
+                // Imagen inferior = ANTES
+                cargarFoto(context, binding.imgTarea, tarea.fotoDespuesUrl)
+                cargarFoto(context, binding.imgRespuesta, tarea.fotoAntesUrl)
             }
 
             "Rechazada" -> {
+                binding.imgRespuesta.visibility = View.VISIBLE
                 binding.tvFechaRespuesta.visibility = View.VISIBLE
+
                 val fechaFormateada = formatearTimestamp(tarea.fechaRespuesta)
                 binding.tvFechaRespuesta.text = "Rechazada: $fechaFormateada"
 
-                cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
+                // También invertimos: primero DESPUÉS si existe (evidencia),
+                // segundo ANTES
+                cargarFoto(context, binding.imgTarea, tarea.fotoDespuesUrl)
+                cargarFoto(context, binding.imgRespuesta, tarea.fotoAntesUrl)
             }
 
             else -> {
+                binding.imgRespuesta.visibility = View.GONE
                 binding.tvFechaRespuesta.visibility = View.GONE
                 cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
             }
         }
 
-        // 4. Click en la imagen: abre visualizador con 1 o 2 fotos y se pueden deslizar
+        // 4. Clicks en imágenes
+
+        // Imagen de arriba (imgTarea)
         binding.imgTarea.setOnClickListener {
-            abrirVisualizador(context, tarea)
+            when (tarea.estado) {
+                "Realizada", "Rechazada" -> {
+                    // En realizadas/rechazadas la de arriba es DESPUÉS
+                    abrirVisualizador(context, tarea.fotoDespuesUrl)
+                }
+                else -> {
+                    // En pendientes/asignadas la de arriba es ANTES
+                    abrirVisualizador(context, tarea.fotoAntesUrl)
+                }
+            }
+        }
+
+        // Imagen de abajo (imgRespuesta)
+        binding.imgRespuesta.setOnClickListener {
+            when (tarea.estado) {
+                "Realizada", "Rechazada" -> {
+                    // Abajo = ANTES
+                    if (!tarea.fotoAntesUrl.isNullOrEmpty()) {
+                        abrirVisualizador(context, tarea.fotoAntesUrl)
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "No hay foto de antes disponible",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                else -> {
+                    // Por seguridad: si en algún momento usas la segunda imagen para otra cosa
+                    if (!tarea.fotoDespuesUrl.isNullOrEmpty()) {
+                        abrirVisualizador(context, tarea.fotoDespuesUrl)
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Aún no hay foto de respuesta disponible",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
         }
 
         // 5. Botones de acción
@@ -149,31 +199,18 @@ class TareaAdapter(
         }
     }
 
-    /**
-     * Abre el visualizador a pantalla completa.
-     * - Si solo hay fotoAntes → se ve 1 imagen
-     * - Si hay fotoAntes y fotoDespues → se ven 2 y se desliza entre ellas
-     */
-    private fun abrirVisualizador(context: android.content.Context, tarea: Tarea) {
-        val urls = arrayListOf<String>()
-
-        tarea.fotoAntesUrl?.let { if (it.isNotBlank()) urls.add(it) }
-        tarea.fotoDespuesUrl?.let { if (it.isNotBlank()) urls.add(it) }
-
-        if (urls.isNotEmpty()) {
+    private fun abrirVisualizador(context: android.content.Context, url: String?) {
+        if (!url.isNullOrEmpty()) {
             val intent = Intent(context, VisualizadorImagenActivity::class.java).apply {
                 putStringArrayListExtra(
                     VisualizadorImagenActivity.EXTRA_IMAGE_URLS,
-                    urls
+                    arrayListOf(url)
                 )
             }
             context.startActivity(intent)
         } else {
-            Toast.makeText(
-                context,
-                "No hay fotos disponibles para mostrar",
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(context, "No hay foto disponible para mostrar", Toast.LENGTH_SHORT)
+                .show()
         }
     }
 
@@ -184,8 +221,6 @@ class TareaAdapter(
             "—"
         }
     }
-
-    // ---------------------- PÚBLICOS PARA EL VIEWMODEL ----------------------
 
     fun actualizarTareas(nuevasTareas: List<Tarea>) {
         tareas = nuevasTareas
