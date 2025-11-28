@@ -31,17 +31,13 @@ import java.util.Locale
 
 class MuroTareasActivity : AppCompatActivity() {
 
-    // ---------------------------
     // ViewBinding + ViewModel
-    // ---------------------------
     private var _binding: ActivityMuroTareasBinding? = null
     private val binding get() = _binding!!
     private lateinit var viewModel: TareasViewModel
     private lateinit var adapter: TareaAdapter
 
-    // ---------------------------
     // Usuario y Rol
-    // ---------------------------
     private var rolUsuario: String = LoginActivity.ROL_REALIZAR
     private var usernameActual: String = ""
 
@@ -53,18 +49,13 @@ class MuroTareasActivity : AppCompatActivity() {
         private const val STATE_SCROLL_POSITION = "state_scroll_position"
     }
 
-    // ---------------------------
     // Variables de Foto
-    // ---------------------------
     private var tareaEnRespuesta: Tarea? = null
     private var fotoAntesUri: Uri? = null
     private var fotoRespuestaUri: Uri? = null
 
-    // ---------------------------
     // Launchers
-    // ---------------------------
-
-    // Permiso cámara → responder tarea
+    // Permiso cámara - responder tarea
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -75,7 +66,7 @@ class MuroTareasActivity : AppCompatActivity() {
             }
         }
 
-    // Tomar foto → responder tarea
+    // Tomar foto - responder tarea
     private val camaraLauncher =
         registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
             val tarea = tareaEnRespuesta
@@ -91,14 +82,14 @@ class MuroTareasActivity : AppCompatActivity() {
             fotoRespuestaUri = null
         }
 
-    // Permiso cámara → crear tarea
+    // Permiso cámara - crear tarea
     private val crearTareaCameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) lanzarCamaraParaCreacion()
             else Toast.makeText(this, "Se requiere cámara para tomar la foto.", Toast.LENGTH_LONG).show()
         }
 
-    // Tomar foto → crear tarea
+    // Tomar foto - crear tarea
     private val crearTareaCamaraLauncher =
         registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
             if (success && fotoAntesUri != null) {
@@ -109,16 +100,15 @@ class MuroTareasActivity : AppCompatActivity() {
             }
         }
 
-    // Galería → crear tarea
+    // Galería - crear tarea
     internal val crearTareaGaleriaLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let { lanzarCrearTareaActivity(it) }
                 ?: Toast.makeText(this, "Selección cancelada.", Toast.LENGTH_SHORT).show()
         }
 
-    // ---------------------------
+
     // Ciclo de vida
-    // ---------------------------
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         _binding = ActivityMuroTareasBinding.inflate(layoutInflater)

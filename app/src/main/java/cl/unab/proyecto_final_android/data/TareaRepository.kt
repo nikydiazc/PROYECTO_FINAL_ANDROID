@@ -25,7 +25,8 @@ class TareaRepository(
         fechaDesde: Timestamp?,
         fechaHasta: Timestamp?,
         callback: (List<Tarea>, String?) -> Unit
-    ) {
+    )
+ {
         var query: Query = db.collection(COLLECTION)
 
         // 1. FILTRO POR ESTADO SEGÚN MODO MURO
@@ -161,7 +162,8 @@ class TareaRepository(
         nuevaUbicacion: String,
         nuevoPiso: String,
         callback: (Boolean, String?) -> Unit
-    ) {
+    )
+ {
         val updates = mapOf(
             "descripcion" to nuevaDescripcion,
             "ubicacion" to nuevaUbicacion,
