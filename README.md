@@ -1,91 +1,128 @@
-📱 Aplicación Android – Gestión de Solicitudes de Limpieza
+📱 **PROYECTO FINAL – App de Gestión de Solicitudes de Limpieza**
+
+Autor: Nicole Díaz
+Curso: Desarrollo de Aplicaciones Móviles
+Tecnologías: Android + Kotlin + Firebase
+
 🧹 Descripción General
 
-Esta aplicación Android permite gestionar solicitudes de limpieza en tiempo real, pensada para operaciones internas en instalaciones como centros comerciales.
-El sistema facilita la creación de solicitudes, asignación a supervisores y la actualización de tareas con evidencia fotográfica de antes y después.
+Esta aplicación móvil permite gestionar solicitudes de limpieza internas dentro de un centro comercial u operación similar.
+El sistema organiza las tareas, permite enviar fotos antes/después y facilita la coordinación entre jefaturas y supervisores, evitando que las solicitudes se pierdan en WhatsApp.
 
-La app está diseñada para tres tipos principales de usuarios:
+La aplicación considera flujos reales de operación, roles definidos y manejo de evidencia.
 
-Crear Tarea: Puede generar solicitudes con descripción, ubicación, piso y foto inicial.
+👥 Roles de Usuario
+🟦 1. Crear Tarea
 
-Administrador: Puede asignar tareas, editar, eliminar, ver listas completas y responder tareas si es necesario.
+Crea solicitudes con descripción, ubicación, piso y foto inicial.
 
-Realizar Tarea / Supervisores: Ven tareas asignadas o pendientes y pueden subir evidencia fotográfica de la realización.
+No ve ni edita tareas.
 
-🔐 Roles de Usuario
-crear_tarea:	Crea solicitudes de limpieza. No puede ver, editar ni eliminar tareas.
+🟧 2. Administrador
 
-administrador: Puede ver todas las tareas (pendientes, asignadas, realizadas), asignar supervisores, rechazar, editar y eliminar tareas, además de responder con evidencia.
+Ve todas las tareas.
 
-realizar_tarea / supervisores: Pueden ver tareas asignadas, responder con foto y comentario, marcar como realizadas. No pueden editar ni eliminar.
+Puede asignar supervisores, editar, eliminar, rechazar y responder tareas.
 
-Lo usuarios de prueba son:
-• Usuario1 - Crear tareas:
-- email: crear_tarea@miapp.com
-- contraseña: Creartarea01
+Acceso completo.
 
-• Usuario2 - Administrador:
-- email: administrador@miapp.com
-- contraseña: Administrador02
+🟩 3. Realizar Tarea / Supervisores
 
-• Usuario3 - Realizar tareas (genérico, sin asignación)
-- email: realizar_tarea@miapp.com
-- contraseña: Realizartarea03
+Ven tareas asignadas.
 
-Algunos usuarios de supervisores: 
-- email: delfina.cabello@miapp.com/contraseña: delfina.cabello
-- email: rodrigo.reyes@miapp.com/contraseña: rodrigo.reyes
-- email: maria.caruajulca@miapp.com/contraseña: maria.caruajulca
-- email: john.vilchez@miapp.com/ contraseña: john.vilchez
+Responden con foto después.
 
-  ✨ Funcionalidades Principales
+No pueden editar ni eliminar.
+
+🧪 Usuarios de Prueba
+👉 Crear tareas
+
+correo: crear_tarea@miapp.com
+
+contraseña: Creartarea01
+
+👉 Administrador
+
+correo: administrador@miapp.com
+
+contraseña: Administrador02
+
+👉 Realizar tareas
+
+correo: realizar_tarea@miapp.com
+
+contraseña: Realizartarea03
+
+👉 Supervisores reales
+
+(usan contraseña = primera parte del correo)
+
+delfina.cabello@miapp.com
+
+rodrigo.reyes@miapp.com
+
+maria.caruajulca@miapp.com
+
+john.vilchez@miapp.com
+…y más.
+
+✨ Funcionalidades Principales
 ✔ Crear Solicitudes
 
-Los usuarios pueden ingresar:
+El usuario ingresar:
+
 Descripción
-Ubicación (texto libre)
-Piso (selector desplegable desde -6 a 6)
-Fotografía de evidencia inicial
 
-✔ Panel de Tareas (Muro)
-Se muestran tres vistas:
+Ubicación
 
-🟥 Tareas Pendientes
-Solo aparecen tareas sin asignación
-• Admin puede deslizar:
-Izquierda: Rechazar (eliminar)
-Derecha: Asignar a supervisor
+Piso (desde -6 a 6)
 
-🟧 Tareas Asignadas
-Filtrable por:
-Supervisor asignado
-Piso
-Texto (descripción o ubicación)
+Foto de evidencia inicial
+
+Se guarda en Firestore + Storage
+
+✔ Muro de Tareas (Dashboard)
+
+La app tiene un panel dividido en:
+
+🟥 Pendientes
+
+No tienen asignación
+
+Acciones para el Admin:
+
+Swipe izquierda → Rechazar
+
+Swipe derecha → Asignar supervisor
+
+🟧 Asignadas
+
+Filtros dinámicos: supervisor, piso, búsqueda por texto
+
 Supervisores pueden responder con foto
 
-🟩 Tareas Realizadas
-Muestra evidencia “ANTES y DESPUÉS”
+🟩 Realizadas
+
+Muestra evidencia ANTES / DESPUÉS con ViewPager
+
 Solo Admin puede eliminar
 
 ✔ Subida de Fotografías
+
 Cámara nativa
-Permite elegir desde galería (solo para crear, para la respuesta es solo con fotografia desde la cámara)
-Evidencia de respuesta obligatoria
-Se almacena en Firebase Storage
 
-🛠 Tecnologías Utilizadas
+Galería solo para crear tareas
 
-Kotlin
-Firebase Firestore → almacenamiento de tareas
-Firebase Storage → fotos antes/después
-Firebase Authentication → creación de usuarios autorizados para acceder
-Camera Intent → captura de evidencia
-RecyclerView + CardView
-Glide → carga de imágenes
+Respuestas siempre con cámara (evidencia en tiempo real)
 
+Se almacenan en Firebase Storage
 
+✔ Autenticación y Sesiones
 
+Firebase Authentication
 
+App guarda la sesión con SharedPreferences
 
+Solo se cierra al presionar “Cerrar sesión”
 
 
