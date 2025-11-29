@@ -17,15 +17,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PROYECTO_FINAL_ANDROID">
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="cl.unab.proyecto_final_android.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/provider_paths" />
-        </provider>
 
         <activity
             android:name=".ui.login.LoginActivity"
@@ -47,16 +38,16 @@
         <activity
             android:name=".VisualizadorImagenActivity" />
 
-        <!-- FileProvider para manejo de imágenes -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.provider"
+            android:authorities="cl.unab.proyecto_final_android.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
+
 
     </application>
 

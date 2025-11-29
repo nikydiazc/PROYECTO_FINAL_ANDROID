@@ -33,7 +33,12 @@ class TareaAdapter(
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
     inner class TareaViewHolder(val binding: ItemTareaBinding) :
-        RecyclerView.ViewHolder(binding.root)
+        RecyclerView.ViewHolder(binding.root) {
+
+        // true  -> se está mostrando el RESULTADO (imgRespuesta)
+        // false -> se está mostrando el ANTES (imgTarea)
+        var mostrandoResultado: Boolean = true
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TareaViewHolder {
         val binding = ItemTareaBinding.inflate(
@@ -65,93 +70,122 @@ class TareaAdapter(
             ColorStatus.getColorResource(tarea.estado ?: "")
         )
 
-        // 2) Visibilidad de botones según rol
+        // 2) Fecha de respuesta según estado
+        when (tarea.estado) {
+            "Realizada" -> {
+                binding.tvFechaRespuesta.visibility = View.VISIBLE
+                binding.tvFechaRespuesta.text =
+                    "Realizada: ${formatearTimestamp(tarea.fechaRespuesta)}"
+            }
+            "Rechazada" -> {
+                binding.tvFechaRespuesta.visibility = View.VISIBLE
+                binding.tvFechaRespuesta.text =
+                    "Rechazada: ${formatearTimestamp(tarea.fechaRespuesta)}"
+            }
+            else -> {
+                binding.tvFechaRespuesta.visibility = View.GONE
+            }
+        }
 
-        // Admin puede editar/eliminar
+        // 3) Visibilidad de botones según rol
         val puedeAdministrar = esAdmin
-        binding.btnEditarTarea.visibility = if (puedeAdministrar) View.VISIBLE else View.GONE
-        binding.btnEliminarTarea.visibility = if (puedeAdministrar) View.VISIBLE else View.GONE
+        binding.btnEditarTarea.visibility =
+            if (puedeAdministrar) View.VISIBLE else View.GONE
+        binding.btnEliminarTarea.visibility =
+            if (puedeAdministrar) View.VISIBLE else View.GONE
 
-        // ¿Puede responder?
-        // - No responde quien crea (ROL_CREAR)
-        // - No se responde si está Realizada o Rechazada
         val puedeResponder = rolUsuario != LoginActivity.ROL_CREAR &&
                 !tarea.estado.equals("Realizada", ignoreCase = true) &&
                 !tarea.estado.equals("Rechazada", ignoreCase = true)
 
-        // Si la tarea está asignada a alguien:
-        // - Si es ADMIN => siempre puede responder
-        // - Si es REALIZAR => solo puede si asignadaA == usernameActual
         val asignadaAOtroCuandoSoyRealizar =
             !tarea.asignadaA.isNullOrEmpty() &&
                     tarea.asignadaA != usernameActual &&
                     rolUsuario == LoginActivity.ROL_REALIZAR
 
         binding.btnResponderFoto.visibility =
-            if (puedeResponder && !asignadaAOtroCuandoSoyRealizar) View.VISIBLE else View.GONE
+            if (puedeResponder && !asignadaAOtroCuandoSoyRealizar)
+                View.VISIBLE
+            else
+                View.GONE
 
-        // 3) Vistas condicionales según estado
-        when (tarea.estado) {
-            "Pendiente", "Asignada" -> {
-                binding.imgRespuesta.visibility = View.GONE
-                binding.tvFechaRespuesta.visibility = View.GONE
-
-                // En pendientes/asignadas, mostramos solo la foto "antes"
-                cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
-            }
-
-            "Realizada" -> {
-                binding.imgRespuesta.visibility = View.VISIBLE
-                binding.tvFechaRespuesta.visibility = View.VISIBLE
-
-                val fechaFormateada = formatearTimestamp(tarea.fechaRespuesta)
-                binding.tvFechaRespuesta.text = "Realizada: $fechaFormateada"
-
-                // Aquí mostramos PRIMERO el DESPUÉS (arriba) y luego el ANTES (abajo)
-                cargarFoto(context, binding.imgTarea, tarea.fotoDespuesUrl ?: tarea.fotoAntesUrl)
-                cargarFoto(context, binding.imgRespuesta, tarea.fotoAntesUrl)
-            }
-
-            "Rechazada" -> {
-                binding.imgRespuesta.visibility = View.VISIBLE
-                binding.tvFechaRespuesta.visibility = View.VISIBLE
-
-                val fechaFormateada = formatearTimestamp(tarea.fechaRespuesta)
-                binding.tvFechaRespuesta.text = "Rechazada: $fechaFormateada"
-
-                // Mismo criterio: primero evidencia final, luego la original
-                cargarFoto(context, binding.imgTarea, tarea.fotoDespuesUrl ?: tarea.fotoAntesUrl)
-                cargarFoto(context, binding.imgRespuesta, tarea.fotoAntesUrl)
-            }
-
-            else -> {
-                binding.imgRespuesta.visibility = View.GONE
-                binding.tvFechaRespuesta.visibility = View.GONE
-                cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
-            }
-        }
-
-        // 4) Clicks en imágenes
-
-        // Foto principal (arriba)
-        binding.imgTarea.setOnClickListener {
-            abrirVisualizador(context, tarea.fotoDespuesUrl ?: tarea.fotoAntesUrl)
-        }
-
-        // Foto secundaria (abajo)
-        binding.imgRespuesta.setOnClickListener {
-            if (!tarea.fotoAntesUrl.isNullOrEmpty()) {
-                abrirVisualizador(context, tarea.fotoAntesUrl)
-            } else {
-                Toast.makeText(context, "No hay foto disponible para mostrar", Toast.LENGTH_SHORT)
-                    .show()
-            }
-        }
+        // 4) Configurar fotos (antes / resultado) y alternar con TAP
+        configurarFotos(holder, tarea)
 
         // 5) Botones de acción
         binding.btnResponderFoto.setOnClickListener { onResponderClick(tarea) }
         binding.btnEditarTarea.setOnClickListener { onEditarClick(tarea) }
         binding.btnEliminarTarea.setOnClickListener { onEliminarClick(tarea) }
+    }
+
+    // ---------------------- FOTOS: ANTES / DESPUÉS ----------------------
+
+    private fun configurarFotos(holder: TareaViewHolder, tarea: Tarea) {
+        val binding = holder.binding
+        val context = binding.root.context
+
+        // imgTarea  -> ANTES
+        // imgRespuesta -> RESULTADO / DESPUÉS
+        cargarFoto(context, binding.imgTarea, tarea.fotoAntesUrl)
+        cargarFoto(context, binding.imgRespuesta, tarea.fotoDespuesUrl ?: tarea.fotoAntesUrl)
+
+        if (tarea.estado.equals("Realizada", true) ||
+            tarea.estado.equals("Rechazada", true)
+        ) {
+            // En realizadas/rechazadas:
+            // 👉 primero mostrar el RESULTADO (imgRespuesta)
+            holder.mostrandoResultado = true
+            binding.imgRespuesta.visibility = View.VISIBLE
+            binding.imgTarea.visibility = View.GONE
+
+            // Un tap alterna entre resultado ↔ antes
+            binding.imgTarea.setOnClickListener {
+                alternarFotos(holder)
+            }
+            binding.imgRespuesta.setOnClickListener {
+                alternarFotos(holder)
+            }
+
+            // Long click abre visualizador a pantalla completa
+            binding.imgTarea.setOnLongClickListener {
+                abrirVisualizador(context, tarea.fotoAntesUrl)
+                true
+            }
+            binding.imgRespuesta.setOnLongClickListener {
+                abrirVisualizador(context, tarea.fotoDespuesUrl ?: tarea.fotoAntesUrl)
+                true
+            }
+
+        } else {
+            // Otros estados: solo mostramos ANTES
+            holder.mostrandoResultado = false
+            binding.imgRespuesta.visibility = View.GONE
+            binding.imgTarea.visibility = View.VISIBLE
+
+            // Tap abre visualizador directamente
+            binding.imgTarea.setOnClickListener {
+                abrirVisualizador(context, tarea.fotoAntesUrl)
+            }
+            binding.imgRespuesta.setOnClickListener(null)
+            binding.imgTarea.setOnLongClickListener(null)
+            binding.imgRespuesta.setOnLongClickListener(null)
+        }
+    }
+
+    private fun alternarFotos(holder: TareaViewHolder) {
+        val binding = holder.binding
+
+        if (holder.mostrandoResultado) {
+            // Pasar de RESULTADO → ANTES
+            binding.imgRespuesta.visibility = View.GONE
+            binding.imgTarea.visibility = View.VISIBLE
+            holder.mostrandoResultado = false
+        } else {
+            // Volver de ANTES → RESULTADO
+            binding.imgTarea.visibility = View.GONE
+            binding.imgRespuesta.visibility = View.VISIBLE
+            holder.mostrandoResultado = true
+        }
     }
 
     // ---------------------- AUXILIARES ----------------------
@@ -206,3 +240,4 @@ class TareaAdapter(
         return if (position in tareas.indices) tareas[position] else null
     }
 }
+

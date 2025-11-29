@@ -25,6 +25,26 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 1) Revisar si ya hay sesión guardada
+        val prefs = getSharedPreferences("session_prefs", MODE_PRIVATE)
+        val isLoggedIn = prefs.getBoolean("isLoggedIn", false)
+
+        if (isLoggedIn) {
+            val rolGuardado = prefs.getString("rol", null)
+            val usernameGuardado = prefs.getString("username", null)
+
+            val intent = Intent(this, MuroTareasActivity::class.java).apply {
+                putExtra(EXTRA_ROL_USUARIO, rolGuardado)
+                putExtra(EXTRA_USERNAME, usernameGuardado)
+                putExtra(EXTRA_ES_ADMIN, rolGuardado == ROL_ADMIN)
+            }
+            startActivity(intent)
+            finish()
+            return
+        }
+
+        // 2) Si no hay sesión, muestro el login normal
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -60,10 +80,13 @@ class LoginActivity : AppCompatActivity() {
 
                     // Determinar rol según el correo
                     val rol = getRolFromCorreo(correoLower)
-
                     val usernameCorto = extraerUsernameDesdeCorreo(correoLower)
                     val esAdmin = (rol == ROL_ADMIN)
 
+                    // 👉 GUARDAR SESIÓN AQUÍ
+                    guardarSesion(usernameCorto, rol)
+
+                    // Navegar según el rol
                     when (rol) {
                         ROL_CREAR -> irACrearTarea(usernameCorto, rol, esAdmin)
                         ROL_ADMIN,
@@ -78,6 +101,16 @@ class LoginActivity : AppCompatActivity() {
                     ).show()
                 }
             }
+    }
+
+    // Guarda la sesión en SharedPreferences
+    private fun guardarSesion(username: String, rol: String) {
+        val prefs = getSharedPreferences("session_prefs", MODE_PRIVATE)
+        prefs.edit()
+            .putBoolean("isLoggedIn", true)
+            .putString("username", username)
+            .putString("rol", rol)
+            .apply()
     }
 
     // Mapea correos a roles

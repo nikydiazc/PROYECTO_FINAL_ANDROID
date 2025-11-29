@@ -31,8 +31,7 @@
                 android:scaleType="centerInside"
                 android:src="@drawable/camera_icon" />
 
-            <!-- La foto de respuesta se mostrará solo en pantalla completa.
-                 En la card la dejamos oculta para no agrandar el alto. -->
+            <!-- Foto de respuesta / resultado -->
             <ImageView
                 android:id="@+id/imgRespuesta"
                 android:layout_width="match_parent"
@@ -166,4 +165,3 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>
-

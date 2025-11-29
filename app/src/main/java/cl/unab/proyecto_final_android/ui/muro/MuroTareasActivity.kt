@@ -28,6 +28,9 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import cl.unab.proyecto_final_android.R
+
+
 
 class MuroTareasActivity : AppCompatActivity() {
 
@@ -114,18 +117,38 @@ class MuroTareasActivity : AppCompatActivity() {
         _binding = ActivityMuroTareasBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        //Quitar el relleno solido de la barra de navegación
+        // Quitar el relleno solido de la barra de navegación
         binding.bottomNav.itemIconTintList = null
 
-        // Roles recibidos por Intent
-        rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO) ?: LoginActivity.ROL_REALIZAR
+        // 1) Intent: roles recibidos
+        rolUsuario = intent.getStringExtra(LoginActivity.EXTRA_ROL_USUARIO)
+            ?: LoginActivity.ROL_REALIZAR
         usernameActual = intent.getStringExtra(LoginActivity.EXTRA_USERNAME) ?: ""
+
+        // 2) Si vienen vacíos, intentamos leer desde SharedPreferences
+        if (usernameActual.isEmpty()) {
+            val prefs = getSharedPreferences("session_prefs", MODE_PRIVATE)
+            val usernamePrefs = prefs.getString("username", null)
+            val rolPrefs = prefs.getString("rol", null)
+
+            if (usernamePrefs != null && rolPrefs != null) {
+                usernameActual = usernamePrefs
+                rolUsuario = rolPrefs
+            } else {
+                // No hay sesión válida → volvemos al login
+                val intent = Intent(this, LoginActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+                startActivity(intent)
+                finish()
+                return
+            }
+        }
 
         // ViewModel + Repositorio
         val repo = TareaRepository(FirebaseFirestore.getInstance(), FirebaseStorage.getInstance())
         val factory = TareasViewModelFactory(repo, rolUsuario, usernameActual)
         viewModel = ViewModelProvider(this, factory)[TareasViewModel::class.java]
-
 
         // Inicializadores UI
         FiltroFechaManager(this, binding, viewModel)
@@ -145,12 +168,40 @@ class MuroTareasActivity : AppCompatActivity() {
         MuroConfigurator.configurarBottomNav(this, binding.bottomNav, rolUsuario, usernameActual)
         MuroConfigurator.configurarSwipeConRol(this, binding.rvTareas, adapter, viewModel, esAdmin)
 
+        binding.bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_crear_tarea -> {
+                    // Ir a crear tarea
+                    val intent = Intent(this, CrearTareaActivity::class.java).apply {
+                        putExtra(LoginActivity.EXTRA_ROL_USUARIO, rolUsuario)
+                        putExtra(LoginActivity.EXTRA_USERNAME, usernameActual)
+                    }
+                    startActivity(intent)
+                    true
+                }
+
+                R.id.nav_muro_tareas -> {
+                    // Ya estás en el muro; si quieres puedes recargar tareas
+                    // viewModel.cargarTareas()
+                    true
+                }
+
+                R.id.nav_usuario -> {
+                    // Aquí hacemos CERRAR SESIÓN
+                    mostrarDialogoCerrarSesion()
+                    true
+                }
+
+                else -> false
+            }
+        }
+
+
+
         observarViewModel()
 
-        viewModel.cargarTareas()
         MuroConfigurator.marcarBotonActivo(binding.btnTareasPendientes, binding)
         MuroConfigurator.actualizarVisibilidadFiltros(binding, esAdmin, ModoMuro.PENDIENTES)
-
 
         val scrollPos = savedInstanceState?.getInt(STATE_SCROLL_POSITION, 0) ?: 0
         binding.rvTareas.post {
@@ -288,6 +339,28 @@ class MuroTareasActivity : AppCompatActivity() {
         return tarea.asignadaA.equals(usernameCorto, ignoreCase = true)
     }
 
+    private fun cerrarSesion() {
+        val prefs = getSharedPreferences("session_prefs", MODE_PRIVATE)
+        prefs.edit().clear().apply()   // Borrar todo lo guardado de la sesión
+
+        val intent = Intent(this, LoginActivity::class.java).apply {
+            // Limpiar el back stack para que no vuelva al muro con "back"
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
+    }
+
+    private fun mostrarDialogoCerrarSesion() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Cerrar sesión")
+            .setMessage("¿Quieres cerrar sesión y volver a la pantalla de inicio?")
+            .setPositiveButton("Sí") { _, _ ->
+                cerrarSesion()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
 
 
 }
